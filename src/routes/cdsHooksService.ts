@@ -152,6 +152,28 @@ function extractPatientData(request: CDSHookRequest) {
 function generateResponseCards(taskId: string, context: any): Card[] {
     const cards: Card[] = [];
 
+    // Validate SMART configuration
+    if (!config.smartApp.clientId || !config.smartApp.redirectUri) {
+        cards.push({
+            summary: 'Configuration Error',
+            indicator: 'warning',
+            detail: 'SMART on FHIR configuration is incomplete. Please check your environment variables.',
+            source: getSourceInfo()
+        });
+        return cards;
+    }
+
+    // SMART launch URL with required parameters
+    const smartLaunchUrl = new URL(config.smartApp.launchUrl);
+    smartLaunchUrl.searchParams.set('launch', taskId);
+    smartLaunchUrl.searchParams.set('iss', config.fhir.baseUrl);
+    smartLaunchUrl.searchParams.set('client_id', config.smartApp.clientId);
+    smartLaunchUrl.searchParams.set('redirect_uri', config.smartApp.redirectUri);
+    smartLaunchUrl.searchParams.set('scope', config.smartApp.scope);
+    smartLaunchUrl.searchParams.set('response_type', 'code');
+    smartLaunchUrl.searchParams.set('state', taskId);
+    smartLaunchUrl.searchParams.set('aud', config.fhir.baseUrl);
+
     // Main card with SMART app launch
     cards.push({
         summary: 'AI Expert Panel Analysis Initiated',
@@ -163,11 +185,13 @@ Analysis ID: ${taskId}`,
         source: getSourceInfo(),
         links: [{
             label: 'View Analysis',
-            url: `${config.smartApp.launchUrl}?task=${taskId}&patient=${context.patientId}`,
+            url: smartLaunchUrl.toString(),
             type: 'smart',
             appContext: JSON.stringify({
                 taskId,
-                patientId: context.patientId
+                patientId: context.patientId,
+                fhirServer: config.fhir.baseUrl,
+                clientId: config.smartApp.clientId
             })
         }]
     });

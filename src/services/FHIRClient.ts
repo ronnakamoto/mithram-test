@@ -70,6 +70,13 @@ export class FHIRClient {
                 params._revinclude : [params._revinclude] })
         };
 
+        console.log(`[FHIR Query] ${resourceType}`, {
+            baseUrl: this.baseUrl,
+            resourceType,
+            searchParams,
+            timestamp: new Date().toISOString()
+        });
+
         const result = await this.executeWithRetry(() => 
             this.client.search({
                 resourceType,
