@@ -8,6 +8,10 @@ if (!process.env.OPENAI_API_KEY) {
     throw new Error('OPENAI_API_KEY environment variable is required');
 }
 
+if (!process.env.NFT_CONTRACT_ADDRESS || !process.env.NFT_PRIVATE_KEY) {
+    throw new Error('NFT_CONTRACT_ADDRESS and NFT_PRIVATE_KEY environment variables are required');
+}
+
 export const config = {
     version: '1.0.0',
     
@@ -17,10 +21,12 @@ export const config = {
             url: process.env.AMQP_URL || 'amqp://localhost:5672',
             queue: process.env.AMQP_QUEUE || 'analysis-queue'
         },
-        redis: {
-            host: process.env.REDIS_HOST || 'localhost',
-            port: parseInt(process.env.REDIS_PORT || '6379'),
-            password: process.env.REDIS_PASSWORD
+        nft: {
+            contractAddress: process.env.NFT_CONTRACT_ADDRESS,
+            privateKey: process.env.NFT_PRIVATE_KEY,
+            chain: process.env.NFT_CHAIN || 'hardhat',
+            rpcUrl: process.env.NFT_RPC_URL || 'http://127.0.0.1:8545',
+            storage: process.env.NFT_STORAGE_TYPE || 'datauri'
         },
         fhir: {
             baseUrl: process.env.FHIR_SERVER_URL || 'http://fhir-server/fhir',
@@ -35,6 +41,15 @@ export const config = {
             maxTokens: parseInt(process.env.OPENAI_MAX_TOKENS || '2000')
         },
         systemId: process.env.SYSTEM_ID || 'ai-expert-panel-system'
+    },
+
+    // NFT Configuration
+    nft: {
+        contractAddress: process.env.NFT_CONTRACT_ADDRESS,
+        privateKey: process.env.NFT_PRIVATE_KEY,
+        chain: process.env.NFT_CHAIN_ID || 31337,
+        rpcUrl: process.env.NFT_RPC_URL || 'http://127.0.0.1:8545',
+        storage: process.env.NFT_STORAGE_TYPE || 'datauri'
     },
 
     // FHIR Server Configuration
@@ -55,9 +70,9 @@ export const config = {
 
     // System Information
     systemInfo: {
-        url: 'https://example.com/ai-expert-panel',
-        iconUrl: 'https://example.com/ai-expert-panel/icon-100px.png',
-        documentation: 'https://example.com/ai-expert-panel/docs'
+        url: 'https://example.com/mithram-ai-expert-panel',
+        iconUrl: 'https://example.com/mithram-ai-expert-panel/icon-100px.png',
+        documentation: 'https://example.com/mithram-ai-expert-panel/docs'
     },
 
     // Service Configuration

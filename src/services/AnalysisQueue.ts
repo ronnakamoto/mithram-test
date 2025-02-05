@@ -1,77 +1,39 @@
 // src/services/AnalysisQueue.ts
 import * as amqp from 'amqplib';
-import OpenAIService from './OpenAIService';
-import FHIRClient from './FHIRClient';
-import {
-    Task,
-    Bundle,
-    Patient,
-    Condition,
-    Observation,
-    CarePlan,
-    OperationOutcome
-} from 'fhir/r4';
+import { v4 as uuidv4 } from 'uuid';
+import { NFTManager, NFTManagerConfig } from './NFTManager';
+import OpenAIService, { OpenAIServiceConfig, ClinicalContext } from './OpenAIService';
+import Client from 'fhir-kit-client';
 
 interface AnalysisQueueConfig {
     amqp: {
         url: string;
         queue: string;
     };
-    fhir: {
-        baseUrl: string;
-        auth?: {
-            token?: string;
-        };
-    };
-    openai: {
-        apiKey: string;
-    };
-    systemId: string;
+    nft: NFTManagerConfig;
+    openai: OpenAIServiceConfig;
 }
 
 interface AnalysisJob {
     taskId: string;
-    patientId: string;
+    patient: any;
     userId: string;
     timestamp: number;
-}
-
-interface ClinicalContext {
-    patient: {
-        id: string;
-        birthDate?: string;
-        gender?: string;
-    };
-    conditions: Array<{
-        code?: string;
-        display?: string;
-        status?: string;
-        severity?: string;
-        onsetDate?: string;
-    }>;
-    observations: Array<{
-        code?: string;
-        display?: string;
-        value?: number;
-        unit?: string;
-        interpretation?: string;
-    }>;
 }
 
 export class AnalysisQueue {
     private connection: amqp.Connection | null = null;
     private channel: amqp.Channel | null = null;
-    private fhirClient: FHIRClient;
+    private nftManager: NFTManager;
     private openaiService: OpenAIService;
     private isProcessing: boolean = false;
     private queueName: string;
-    private systemId: string;
+    private activeJobs: Map<string, { patientId: string }> = new Map();
 
     constructor(config: AnalysisQueueConfig) {
-        this.fhirClient = new FHIRClient(config.fhir);
-        this.openaiService = new OpenAIService(config.openai.apiKey);
+        this.nftManager = new NFTManager(config.nft);
+        this.openaiService = new OpenAIService(config.openai);
         this.queueName = config.amqp.queue;
-        this.systemId = config.systemId;
 
         this.initialize(config.amqp.url).catch(error => {
             console.error('Failed to initialize AMQP connection:', error);
@@ -108,6 +70,7 @@ export class AnalysisQueue {
             await this.channel.bindQueue('failed_analyses', 'dlx', this.queueName);
 
             console.log('AMQP connection established');
+            await this.startProcessing();
         } catch (error) {
             console.error('AMQP initialization error:', error);
             throw error;
@@ -137,14 +100,28 @@ export class AnalysisQueue {
         }
     }
 
-    async createAnalysis(patientId: string, userId: string): Promise<Task> {
+    async createAnalysis(patient: any, userId: string): Promise<string> {
         try {
-            const task = await this.fhirClient.createTask(patientId, userId);
+            const patientId = patient.id;
+            const analysisId = uuidv4();
 
-            const job: AnalysisJob = {
-                taskId: task.id!,
+            console.log("patient.conditions[0].resource: ", patient.conditions[0].resource, patient.conditions[0].response)
+
+            // Queue NFT minting asynchronously
+            await this.nftManager.queueNFTMint({
                 patientId,
                 userId,
+                analysisId,
+                analysisData: {
+                    status: 'pending',
+                    createdAt: new Date().toISOString()
+                }
+            });
+
+            const job: AnalysisJob = {
+                taskId: analysisId,
+                userId,
+                patient,
                 timestamp: Date.now()
             };
 
@@ -157,7 +134,7 @@ export class AnalysisQueue {
                 Buffer.from(JSON.stringify(job)),
                 {
                     persistent: true,
-                    messageId: task.id,
+                    messageId: analysisId,
                     timestamp: job.timestamp,
                     contentType: 'application/json',
                     headers: {
@@ -166,7 +143,7 @@ export class AnalysisQueue {
                 }
             );
 
-            return task;
+            return analysisId;
         } catch (error) {
             console.error('Error creating analysis:', error);
             throw error;
@@ -219,172 +196,122 @@ export class AnalysisQueue {
 
     private async processAnalysis(job: AnalysisJob): Promise<void> {
         try {
-            await this.updateTaskStatus(job.taskId, 'in-progress', 10);
+            // Store patient ID for this job
+            this.activeJobs.set(job.taskId, { patientId: job.patient.id });
 
-            const patientData = await this.fetchPatientData(job.patientId);
-            await this.updateTaskStatus(job.taskId, 'in-progress', 30);
+            console.log('Processing analysis:', job);
+            await this.updateAnalysisStatus(job.taskId, 'in-progress', 10);
+
+            const patientData = job.patient;
+            console.log('Fetched patient data:', patientData);
+            await this.updateAnalysisStatus(job.taskId, 'in-progress', 30);
 
             const clinicalContext = this.generateClinicalContext(patientData);
-            await this.updateTaskStatus(job.taskId, 'in-progress', 50);
+            await this.updateAnalysisStatus(job.taskId, 'in-progress', 50);
 
-            const recommendations = await this.openaiService.generateRecommendations(clinicalContext);
-            await this.updateTaskStatus(job.taskId, 'in-progress', 70);
+            const recommendations = await this.generateRecommendations(clinicalContext);
+            await this.updateAnalysisStatus(job.taskId, 'in-progress', 70);
 
-            const carePlan = await this.createCarePlan(job.patientId, recommendations);
-            await this.updateTaskStatus(job.taskId, 'in-progress', 90);
+            // Update NFT metadata with completed analysis
+            await this.nftManager.queueMetadataUpdate(job.taskId, {
+                patientId: patientData.id,
+                analysisId: job.taskId,
+                userId: job.userId,
+                analysis: {
+                    status: 'completed',
+                    clinicalContext,
+                    recommendations,
+                    completedAt: new Date().toISOString()
+                },
+                timestamp: new Date().toISOString()
+            });
 
-            await this.updateTaskStatus(job.taskId, 'completed', 100);
-            await this.linkCarePlanToTask(job.taskId, carePlan.id!);
-
+            await this.updateAnalysisStatus(job.taskId, 'completed', 100);
             console.log(`Analysis completed for task ${job.taskId}`);
         } catch (error) {
-            console.error(`Analysis error for task ${job.taskId}:`, error);
+            console.error(`Error processing analysis for task ${job.taskId}:`, error);
             await this.handleAnalysisError(job.taskId, error);
+        }
+    }
+
+    private generateClinicalContext(patientData: any): ClinicalContext {
+        return {
+            patient: {
+                id: patientData.id,
+                birthDate: patientData.birthDate,
+                gender: patientData.gender
+            },
+            conditions: (patientData.conditions || []).map((c: any) => ({
+                code: c.code,
+                display: c.display,
+                status: c.clinicalStatus?.coding?.[0]?.code || 'active',
+                severity: c.severity?.coding?.[0]?.code,
+                onsetDate: c.onset
+            })),
+            observations: (patientData.observations || []).map((o: any) => ({
+                code: o.code,
+                display: o.display,
+                value: o.value?.value || o.value,
+                unit: o.value?.unit,
+                date: o.effectiveDateTime,
+                interpretation: o.interpretation
+            })),
+            medications: (patientData.medications || []).map((m: any) => ({
+                code: m.code,
+                display: m.display,
+                status: m.status,
+                startDate: m.effectiveDateTime || m.authoredOn
+            }))
+        };
+    }
+
+    private async generateRecommendations(clinicalContext: ClinicalContext): Promise<any> {
+        try {
+            console.log('Generating recommendations for clinical context:', clinicalContext);
+            return await this.openaiService.generateRecommendations(clinicalContext);
+        } catch (error) {
+            console.error('Error generating recommendations:', error);
             throw error;
         }
     }
 
-    private async fetchPatientData(patientId: string): Promise<Bundle> {
-        return await this.fhirClient.search('Patient', {
-            _id: patientId,
-            _revinclude: [
-                'Condition:patient',
-                'Observation:patient',
-                'MedicationStatement:patient'
-            ],
-            _count: 100
-        });
-    }
+    private async updateAnalysisStatus(taskId: string, status: string, progress: number): Promise<void> {
+        // Log progress for monitoring
+        console.log(`Analysis ${taskId}: ${status} (${progress}%)`);
 
-    private generateClinicalContext(patientData: Bundle): ClinicalContext {
-        const patient = patientData.entry?.find(e =>
-            e.resource?.resourceType === 'Patient'
-        )?.resource as Patient;
-
-        const conditions = patientData.entry?.filter(e =>
-            e.resource?.resourceType === 'Condition'
-        ).map(e => e.resource as Condition);
-
-        const observations = patientData.entry?.filter(e =>
-            e.resource?.resourceType === 'Observation'
-        ).map(e => e.resource as Observation);
-
-        return {
-            patient: {
-                id: patient.id!,
-                birthDate: patient.birthDate,
-                gender: patient.gender
-            },
-            conditions: conditions?.map(c => ({
-                code: c.code?.coding?.[0]?.code,
-                display: c.code?.coding?.[0]?.display,
-                status: c.clinicalStatus?.coding?.[0]?.code,
-                severity: c.severity?.coding?.[0]?.code,
-                onsetDate: c.onsetDateTime
-            })) || [],
-            observations: observations?.map(o => ({
-                code: o.code?.coding?.[0]?.code,
-                display: o.code?.coding?.[0]?.display,
-                value: o.valueQuantity?.value,
-                unit: o.valueQuantity?.unit,
-                interpretation: o.interpretation?.[0]?.coding?.[0]?.code
-            })) || []
-        };
-    }
-
-    private async createCarePlan(patientId: string, recommendations: any): Promise<CarePlan> {
-        const carePlan: Omit<CarePlan, 'id'> = {
-            resourceType: 'CarePlan',
-            status: 'active',
-            intent: 'plan',
-            subject: {
-                reference: `Patient/${patientId}`
-            },
-            created: new Date().toISOString(),
-            author: {
-                reference: `Organization/${this.systemId}`
-            },
-            activity: recommendations.specialists.map((specialist: any) => ({
-                detail: {
-                    kind: 'ServiceRequest',
-                    code: {
-                        coding: [{
-                            system: 'http://example.org/fhir/CodeSystem/care-plan-activity',
-                            code: specialist.type,
-                            display: specialist.name
-                        }]
-                    },
-                    status: 'scheduled',
-                    description: specialist.justification,
-                    priority: specialist.priority
-                }
-            }))
-        };
-
-        return await this.fhirClient.create('CarePlan', carePlan);
-    }
-
-    private async updateTaskStatus(taskId: string, status: Task['status'], progress: number): Promise<void> {
-        const task = await this.fhirClient.read<Task>('Task', taskId);
-
-        task.status = status;
-        task.lastModified = new Date().toISOString();
-        task.extension = [{
-            url: 'http://example.org/fhir/StructureDefinition/analysis-progress',
-            valueInteger: progress
-        }];
-
-        await this.fhirClient.update('Task', taskId, task);
-    }
-
-    private async linkCarePlanToTask(taskId: string, carePlanId: string): Promise<void> {
-        const task = await this.fhirClient.read<Task>('Task', taskId);
-
-        task.output = [{
-            type: {
-                coding: [{
-                    system: 'http://hl7.org/fhir/CodeSystem/task-output-type',
-                    code: 'CarePlan',
-                    display: 'Care Plan'
-                }]
-            },
-            valueReference: {
-                reference: `CarePlan/${carePlanId}`
+        // Only update NFT metadata for final states
+        if (status === 'completed' || status === 'failed') {
+            const jobInfo = this.activeJobs.get(taskId);
+            if (!jobInfo) {
+                throw new Error(`No active job found for task ${taskId}`);
             }
-        }];
 
-        await this.fhirClient.update('Task', taskId, task);
+            await this.nftManager.queueMetadataUpdate(taskId, {
+                patientId: jobInfo.patientId,
+                analysisId: taskId,
+                analysis: {
+                    status,
+                    completedAt: new Date().toISOString(),
+                },
+                timestamp: new Date().toISOString()
+            });
+
+            // Clean up the job info
+            this.activeJobs.delete(taskId);
+        }
     }
 
     private async handleAnalysisError(taskId: string, error: any): Promise<void> {
-        const outcome: Omit<OperationOutcome, 'id'> = {
-            resourceType: 'OperationOutcome',
-            issue: [{
-                severity: 'error',
-                code: 'processing',
-                diagnostics: error.message
-            }]
-        };
-
-        const createdOutcome = await this.fhirClient.create('OperationOutcome', outcome);
-
-        const task = await this.fhirClient.read<Task>('Task', taskId);
-        task.status = 'failed';
-        task.lastModified = new Date().toISOString();
-        task.output = [{
-            type: {
-                coding: [{
-                    system: 'http://hl7.org/fhir/CodeSystem/task-output-type',
-                    code: 'OperationOutcome',
-                    display: 'Operation Outcome'
-                }]
+        // Update NFT metadata with error status
+        await this.nftManager.queueMetadataUpdate(taskId, {
+            analysisId: taskId,
+            analysis: {
+                status: 'failed',
+                error: error.message,
+                failedAt: new Date().toISOString()
             },
-            valueReference: {
-                reference: `OperationOutcome/${createdOutcome.id}`
-            }
-        }];
-
-        await this.fhirClient.update('Task', taskId, task);
+            timestamp: new Date().toISOString()
+        } as any); // Using 'as any' since we're only updating status fields
     }
 
     private async republishWithDelay(msg: amqp.ConsumeMessage, retryCount: number): Promise<void> {
@@ -432,6 +359,7 @@ export class AnalysisQueue {
             if (this.connection) {
                 await this.connection.close();
             }
+            this.nftManager.destroy(); // Clean up NFTManager resources
         } catch (error) {
             console.error('Error stopping queue processing:', error);
             throw error;

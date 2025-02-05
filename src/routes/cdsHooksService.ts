@@ -2,15 +2,36 @@
 import express, { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { AnalysisQueue } from '../services/AnalysisQueue';
+import { NFTManager } from '../services/NFTManager';
 import { FHIRClient } from '../services/FHIRClient';
-import { CDSHookRequest, Card, CDSServiceResponse } from '../types/cds-hooks';
+import { CDSHookRequest, Card, CDSServiceResponse, Indicator } from '../types/cds-hooks';
 import { config } from '../config';
-import { Task } from 'fhir/r4';
+import { Specialist } from '../services/OpenAIService';
+import type { Chain } from 'viem/chains';
 
 const router = express.Router();
 
 // Initialize services
-const analysisQueue = new AnalysisQueue(config.analysisQueue);
+const analysisQueue = new AnalysisQueue({
+    amqp: config.analysisQueue.amqp,
+    nft: {
+        contractAddress: process.env.NFT_CONTRACT_ADDRESS  as `0x${string}`,
+        privateKey: process.env.NFT_PRIVATE_KEY as `0x${string}`,
+        chain: process.env.NFT_CHAIN as unknown as Chain,
+        storage: process.env.NFT_STORAGE_TYPE as unknown as 'ipfs' | 'datauri'
+    },
+    openai: {
+        apiKey: config.analysisQueue.openai.apiKey,
+    }
+});
+
+const nftManager = new NFTManager({
+    contractAddress: process.env.NFT_CONTRACT_ADDRESS as `0x${string}`,
+    privateKey: process.env.NFT_PRIVATE_KEY as `0x${string}`,
+    chain: process.env.NFT_CHAIN as unknown as Chain,
+    storage: process.env.NFT_STORAGE_TYPE as unknown as 'ipfs' | 'datauri'
+});
+
 const fhirClient = new FHIRClient(config.fhir);
 
 // CDS Services Discovery Endpoint
@@ -24,17 +45,17 @@ router.get('/cds-services', (req: Request, res: Response) => {
             id: 'ai-expert-panel',
             prefetch: {
                 patient: 'Patient/{{context.patientId}}',
-                conditions: 'Condition?patient={{context.patientId}}&status=active',
-                medications: 'MedicationStatement?patient={{context.patientId}}&status=active',
-                observations: 'Observation?patient={{context.patientId}}&_count=50&_sort=-date',
-                encounters: 'Encounter?patient={{context.patientId}}&_count=10&_sort=-date'
+                conditions: 'Condition?patient={{context.patientId}}',
+                medications: 'MedicationStatement?patient={{context.patientId}}',
+                observations: 'Observation?patient={{context.patientId}}',
+                encounters: 'Encounter?patient={{context.patientId}}'
             }
         }]
     });
 });
 
 // Main CDS Service Endpoint
-router.post('/cds-services/ai-expert-panel', async (req: Request, res: Response) => {
+router.post('/cds-services/:id', async (req: Request, res: Response) => {
     try {
         const hookRequest = req.body as CDSHookRequest;
 
@@ -42,7 +63,6 @@ router.post('/cds-services/ai-expert-panel', async (req: Request, res: Response)
 
         // Validate request
         const validationError = validateRequest(hookRequest);
-        console.log(validationError);
         if (validationError) {
             return res.status(400).json({
                 cards: [{
@@ -67,19 +87,21 @@ router.post('/cds-services/ai-expert-panel', async (req: Request, res: Response)
             });
         }
 
+        console.log('Patient data:', patientData);
+
         // Create analysis task
         const task = await analysisQueue.createAnalysis(
-            hookRequest.context.patientId,
+            { ...patientData.patient, conditions: patientData.conditions, observations: patientData.observations, medications: patientData.medications },
             hookRequest.context.userId
         );
 
         // Generate response cards
-        const cards = generateResponseCards(task.id!, hookRequest.context);
+        const cards = generateResponseCards(task, hookRequest.context);
         res.json({ cards });
 
         // Log successful request
-        console.log(`Created analysis task ${task.id} for patient ${hookRequest.context.patientId}`);
-
+        console.log(`Created analysis task ${task} for patient ${hookRequest.context.patientId}`);
+        // res.json({});
     } catch (error) {
         console.error('Service error:', error);
         res.status(500).json({
@@ -96,17 +118,34 @@ router.post('/cds-services/ai-expert-panel', async (req: Request, res: Response)
 // Task Status Endpoint
 router.get('/task/:taskId/status', async (req: Request, res: Response) => {
     try {
-        const task = await fhirClient.read<Task>('Task', req.params.taskId);
-        res.json({
-            status: task.status,
-            progress: task.extension?.find(e => 
-                e.url === 'http://example.org/fhir/StructureDefinition/analysis-progress'
-            )?.valueInteger || 0
-        });
+        const taskId = req.params.taskId;
+        const metadata = await nftManager.getMetadata(taskId);
+
+        console.log('Fetched metadata:', metadata);
+        if (!metadata) {
+            return res.status(404).json({
+                cards: [{
+                    summary: 'Task not found',
+                    indicator: 'warning',
+                    detail: 'The specified analysis task could not be found',
+                    source: getSourceInfo()
+                }]
+            });
+        }
+
+        // Convert NFT metadata to CDS Hooks cards
+        const cards = await generateStatusCards(metadata);
+        res.json({ cards });
+
     } catch (error) {
         console.error('Error fetching task status:', error);
         res.status(500).json({
-            error: 'Failed to fetch task status'
+            cards: [{
+                summary: 'Error retrieving task status',
+                indicator: 'warning',
+                detail: 'An error occurred while retrieving the task status. Please try again later.',
+                source: getSourceInfo()
+            }]
         });
     }
 });
@@ -124,7 +163,6 @@ function validateRequest(request: CDSHookRequest): string | null {
 }
 
 function extractPatientData(request: CDSHookRequest) {
-    console.log(request)
     try {
         const patientResource = request.prefetch?.patient;
         if (!patientResource) {
@@ -134,14 +172,154 @@ function extractPatientData(request: CDSHookRequest) {
             };
         }
 
+        // Process conditions
+        const conditions = (request.prefetch?.conditions?.entry || []).map(entry => {
+            const resource = entry.resource;
+            if (!resource || resource.resourceType !== 'Condition') {
+                return null;
+            }
+
+            // Extract the primary coding
+            const primaryCoding = resource.code?.coding?.[0];
+            const categoryCoding = resource.category?.[0]?.coding?.[0];
+            const clinicalStatusCoding = resource.clinicalStatus?.coding?.[0];
+            const verificationStatusCoding = resource.verificationStatus?.coding?.[0];
+
+            return {
+                id: resource.id,
+                code: primaryCoding?.code,
+                system: primaryCoding?.system,
+                display: resource.code?.text || primaryCoding?.display,
+                category: {
+                    code: categoryCoding?.code,
+                    system: categoryCoding?.system,
+                    display: categoryCoding?.display
+                },
+                clinicalStatus: {
+                    code: clinicalStatusCoding?.code,
+                    display: clinicalStatusCoding?.display
+                },
+                verificationStatus: {
+                    code: verificationStatusCoding?.code,
+                    display: verificationStatusCoding?.display
+                },
+                onset: resource.onsetPeriod?.start || resource.onsetDateTime,
+                abatement: resource.abatementDateTime,
+                recordedDate: resource.recordedDate,
+                severity: resource.severity?.coding?.[0]?.code
+            };
+        }).filter(condition => condition !== null);
+
+        // Process medications
+        const medications = (request.prefetch?.medications?.entry || []).map(entry => {
+            const resource = entry.resource;
+            if (!resource || resource.resourceType !== 'MedicationRequest') {
+                return null;
+            }
+
+            const medicationCoding = resource.medicationCodeableConcept?.coding?.[0];
+            const statusReason = resource.statusReason?.coding?.[0];
+            const categoryInfo = resource.category?.[0]?.coding?.[0];
+
+            return {
+                id: resource.id,
+                status: resource.status,
+                intent: resource.intent,
+                code: medicationCoding?.code,
+                system: medicationCoding?.system,
+                display: resource.medicationCodeableConcept?.text || medicationCoding?.display,
+                category: {
+                    code: categoryInfo?.code,
+                    system: categoryInfo?.system,
+                    display: categoryInfo?.display
+                },
+                authoredOn: resource.authoredOn,
+                statusReason: {
+                    code: statusReason?.code,
+                    display: statusReason?.display
+                },
+                dosageInstructions: resource.dosageInstruction?.map(dosage => ({
+                    text: dosage.text,
+                    timing: dosage.timing?.code?.coding?.[0]?.code,
+                    asNeeded: dosage.asNeeded,
+                    route: dosage.route?.coding?.[0]?.display,
+                    doseQuantity: dosage.doseAndRate?.[0]?.doseQuantity
+                })),
+                dispenseRequest: resource.dispenseRequest ? {
+                    quantity: resource.dispenseRequest.quantity,
+                    expectedSupplyDuration: resource.dispenseRequest.expectedSupplyDuration
+                } : undefined
+            };
+        }).filter(medication => medication !== null);
+
+        // Process observations
+        const observations = (request.prefetch?.observations?.entry || []).map(entry => {
+            const resource = entry.resource;
+            if (!resource || resource.resourceType !== 'Observation') {
+                return null;
+            }
+
+            const codeCoding = resource.code?.coding?.[0];
+            const categoryCoding = resource.category?.[0]?.coding?.[0];
+            
+            // Handle different types of values
+            let value;
+            if (resource.valueQuantity) {
+                value = {
+                    type: 'Quantity',
+                    value: resource.valueQuantity.value,
+                    unit: resource.valueQuantity.unit,
+                    system: resource.valueQuantity.system,
+                    code: resource.valueQuantity.code
+                };
+            } else if (resource.valueCodeableConcept) {
+                const valueCoding = resource.valueCodeableConcept.coding?.[0];
+                value = {
+                    type: 'CodeableConcept',
+                    code: valueCoding?.code,
+                    system: valueCoding?.system,
+                    display: resource.valueCodeableConcept.text || valueCoding?.display
+                };
+            } else if (resource.valueString) {
+                value = {
+                    type: 'String',
+                    value: resource.valueString
+                };
+            }
+
+            return {
+                id: resource.id,
+                status: resource.status,
+                code: codeCoding?.code,
+                system: codeCoding?.system,
+                display: resource.code?.text || codeCoding?.display,
+                category: {
+                    code: categoryCoding?.code,
+                    system: categoryCoding?.system,
+                    display: categoryCoding?.display
+                },
+                effectiveDateTime: resource.effectiveDateTime || resource.effectivePeriod?.start,
+                issued: resource.issued,
+                value,
+                interpretation: resource.interpretation?.[0]?.coding?.[0]?.code,
+                referenceRange: resource.referenceRange?.map(range => ({
+                    low: range.low,
+                    high: range.high,
+                    type: range.type?.coding?.[0]?.code,
+                    text: range.text
+                }))
+            };
+        }).filter(observation => observation !== null);
+
         return {
             isValid: true,
             patient: patientResource,
-            conditions: request.prefetch?.conditions?.entry || [],
-            medications: request.prefetch?.medications?.entry || [],
-            observations: request.prefetch?.observations?.entry || []
+            conditions,
+            medications,
+            observations
         };
     } catch (error: any) {
+        console.error('Error processing patient data:', error);
         return {
             isValid: false,
             error: `Error processing patient data: ${error.message}`
@@ -187,12 +365,6 @@ Analysis ID: ${taskId}`,
             label: 'View Analysis',
             url: smartLaunchUrl.toString(),
             type: 'smart',
-            appContext: JSON.stringify({
-                taskId,
-                patientId: context.patientId,
-                fhirServer: config.fhir.baseUrl,
-                clientId: config.smartApp.clientId
-            })
         }]
     });
 
@@ -215,9 +387,145 @@ Estimated completion time: 2-3 minutes`,
 
 function getSourceInfo() {
     return {
-        label: 'AI Expert Panel',
+        label: 'MithramAI Expert Panel',
         url: config.systemInfo.url,
         icon: config.systemInfo.iconUrl
+    };
+}
+
+function generateStatusCards(metadata: any): Card[] {
+    const analysis = metadata.analysis || {};
+    const cards: Card[] = [];
+
+    // Add status card
+    cards.push({
+        summary: `Analysis ${analysis.status || 'unknown'}`,
+        indicator: getStatusIndicator(analysis.status),
+        detail: getStatusDetail(analysis),
+        source: getSourceInfo(),
+        suggestions: analysis.status === 'completed' ? getAnalysisSuggestions(analysis) : undefined
+    });
+
+    // Add recommendations card if available
+    if (analysis.status === 'completed' && analysis.recommendations) {
+        const recommendations = analysis.recommendations;
+        cards.push({
+            summary: 'Specialist Recommendations',
+            indicator: 'info',
+            detail: formatRecommendations(recommendations),
+            source: getSourceInfo(),
+            suggestions: recommendations.specialists.map((specialist: any) => ({
+                label: `Refer to ${specialist.specialty}`,
+                uuid: uuidv4(),
+                actions: [{
+                    type: 'create',
+                    description: `Create referral to ${specialist.specialty}`,
+                    resource: createReferralResource(specialist)
+                }]
+            }))
+        });
+    }
+
+    // Add error card if failed
+    if (analysis.status === 'failed') {
+        cards.push({
+            summary: 'Analysis Failed',
+            indicator: 'critical',
+            detail: analysis.error || 'Unknown error occurred',
+            source: getSourceInfo()
+        });
+    }
+
+    return cards;
+}
+
+function getStatusIndicator(status?: string): Indicator {
+    switch (status) {
+        case 'completed':
+            return 'info';
+        case 'failed':
+            return 'critical';
+        case 'in-progress':
+            return 'info';
+        default:
+            return 'warning';
+    }
+}
+
+function getStatusDetail(analysis: any): string {
+    switch (analysis.status) {
+        case 'completed':
+            return `Analysis completed at ${analysis.completedAt}. ${analysis.reasoning || ''}`;
+        case 'failed':
+            return `Analysis failed at ${analysis.failedAt}. ${analysis.error || ''}`;
+        case 'in-progress':
+            return 'Analysis is currently in progress. Please check back later.';
+        default:
+            return 'Analysis status unknown.';
+    }
+}
+
+function getAnalysisSuggestions(analysis: any): any[] {
+    const suggestions = [];
+    
+    if (analysis.riskFactors?.length > 0) {
+        suggestions.push({
+            label: 'Document Risk Factors',
+            uuid: uuidv4(),
+            actions: [{
+                type: 'create',
+                description: 'Document identified risk factors',
+                resource: {
+                    resourceType: 'RiskAssessment',
+                    status: 'final',
+                    prediction: analysis.riskFactors.map((risk: string) => ({
+                        outcome: {
+                            text: risk
+                        }
+                    }))
+                }
+            }]
+        });
+    }
+
+    return suggestions;
+}
+
+function formatRecommendations(recommendations: any): string {
+    if (!recommendations.specialists?.length) {
+        return 'No specialist recommendations available.';
+    }
+
+    const specialistDetails = recommendations.specialists
+        .map((s: Specialist) => {
+            return `${s.specialty} (${s.priority})\n` +
+                   `Justification: ${s.justification}\n` +
+                   `Timeframe: ${s.timeframe}\n` +
+                   `Confidence: ${(s.confidence * 100).toFixed(1)}%`;
+        })
+        .join('\n\n');
+
+    return `Specialist Recommendations:\n\n${specialistDetails}`;
+}
+
+function createReferralResource(specialist: Specialist): any {
+    return {
+        resourceType: 'ServiceRequest',
+        status: 'draft',
+        intent: 'plan',
+        priority: specialist.priority,
+        code: {
+            coding: [{
+                system: 'http://snomed.info/sct',
+                code: specialist.code,
+                display: specialist.specialty
+            }]
+        },
+        occurrenceDateTime: new Date().toISOString(),
+        authoredOn: new Date().toISOString(),
+        reasonCode: [{
+            text: specialist.justification
+        }]
     };
 }
 

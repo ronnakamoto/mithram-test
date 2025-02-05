@@ -1,0 +1,355 @@
+import { 
+  createPublicClient, 
+  createWalletClient, 
+  http, 
+  Chain, 
+  PublicClient, 
+  WalletClient, 
+  Address,
+  Hash,
+  Transport,
+  Account
+} from 'viem'
+import { privateKeyToAccount } from 'viem/accounts'
+import { mainnet, goerli, hardhat } from 'viem/chains'
+import { v5 as uuidv5 } from 'uuid'
+import { keccak256, toBytes } from 'viem/utils'
+
+// Custom error class for NFT operations
+export class NFTError extends Error {
+  constructor(message: string, public code: string) {
+    super(message);
+    this.name = 'NFTError';
+  }
+}
+
+// Configuration interface
+export interface NFTClientConfig {
+  chain?: number;
+  transport?: Transport;
+  contractAddress: Address;
+  privateKey: `0x${string}`;
+  storage?: 'ipfs' | 'datauri';
+  rpcUrl?: string;
+}
+
+// Metadata types
+export interface AnalysisData {
+  status: 'pending' | 'in-progress' | 'completed' | 'failed';
+  clinicalContext?: any;
+  recommendations?: any;
+  error?: string;
+  completedAt?: string;
+  failedAt?: string;
+}
+
+export interface NFTMetadata {
+  patientId: string;
+  analysisId: string;
+  analysis: AnalysisData;
+  timestamp: string;
+}
+
+// Contract ABI
+export const PATIENT_NFT_ABI = [
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "patientId",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "analysisId",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "uri",
+        "type": "string"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "metadataHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "safeMint",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    inputs: [
+      { name: 'tokenId', type: 'uint256' },
+      { name: 'uri', type: 'string' },
+    ],
+    name: 'updateTokenURI',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'tokenId', type: 'uint256' }],
+    name: 'ownerOf',
+    outputs: [{ name: 'owner', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'tokenId', type: 'uint256' }],
+    name: 'tokenURI',
+    outputs: [{ name: 'uri', type: 'string' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'analysisId', type: 'string' }],
+    name: 'getTokenByAnalysis',
+    outputs: [{ name: 'tokenId', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'tokenId', type: 'uint256' },
+      { name: 'uri', type: 'string' },
+      { name: 'metadataHash', type: 'bytes32' },
+    ],
+    name: 'updateMetadata',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+] as const;
+
+// UUID namespace for consistent token ID generation
+const TOKEN_ID_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
+
+export class PatientNFTClient {
+  private publicClient: PublicClient;
+  private walletClient: WalletClient;
+  private config: Required<NFTClientConfig>;
+  private account: Account;
+
+  constructor(config: NFTClientConfig) {
+    this.validateConfig(config);
+    
+    // Create custom hardhat chain configuration if using local network
+    const chainConfig: any = config.chain === 31337 ? {
+      ...hardhat,
+      id: 31337,
+      rpcUrls: {
+        default: { http: [config.rpcUrl || 'http://127.0.0.1:8545'] },
+        public: { http: [config.rpcUrl || 'http://127.0.0.1:8545'] }
+      }
+    } : {
+      id: config.chain || 1337,
+      rpcUrls: {
+        default: { http: [config.rpcUrl || 'http://127.0.0.1:8545'] },
+        public: { http: [config.rpcUrl || 'http://127.0.0.1:8545'] }
+      }
+    };
+
+    this.config = {
+      chain: chainConfig,
+      transport: config.transport || http(config.rpcUrl),
+      contractAddress: config.contractAddress,
+      privateKey: config.privateKey,
+      storage: config.storage || 'datauri',
+      rpcUrl: config.rpcUrl || 'http://127.0.0.1:8545'
+    };
+
+    this.account = privateKeyToAccount(this.config.privateKey);
+    
+    this.publicClient = createPublicClient({
+      chain: this.config.chain,
+      transport: this.config.transport
+    });
+
+    this.walletClient = createWalletClient({
+      account: this.account,
+      chain: this.config.chain,
+      transport: this.config.transport
+    });
+  }
+
+  private validateConfig(config: NFTClientConfig): void {
+    if (!config.contractAddress) {
+      throw new NFTError('Contract address is required', 'INVALID_CONFIG');
+    }
+    if (!config.privateKey) {
+      throw new NFTError('Private key is required', 'INVALID_CONFIG');
+    }
+  }
+
+  private async storeMetadata(metadata: NFTMetadata): Promise<string> {
+    if (this.config.storage === 'ipfs') {
+      throw new NFTError('IPFS storage not implemented yet', 'NOT_IMPLEMENTED');
+    }
+    // Store as data URI
+    return `data:application/json;base64,${Buffer.from(JSON.stringify(metadata)).toString('base64')}`;
+  }
+
+  async mintPatientNFT(patientId: string, metadata: NFTMetadata): Promise<{ tokenId: bigint; hash: Hash }> {
+    try {
+      if (!metadata.analysisId) {
+        throw new NFTError('Analysis ID is required', 'INVALID_METADATA');
+      }
+
+      const tokenURI = await this.storeMetadata(metadata);
+      
+      // Generate metadata hash using keccak256
+      const metadataHash = keccak256(toBytes(JSON.stringify(metadata)));
+
+      // Simulate the contract write first
+      const { request } = await this.publicClient.simulateContract({
+        address: this.config.contractAddress,
+        abi: PATIENT_NFT_ABI,
+        functionName: 'safeMint',
+        args: [this.account.address, patientId, metadata.analysisId, tokenURI, metadataHash],
+        account: this.account
+      });
+
+      // Execute the contract write if simulation succeeds
+      const hash = await this.walletClient.writeContract(request);
+
+      // Get the token ID from the contract using the analysis ID
+      const tokenId = await this.publicClient.readContract({
+        address: this.config.contractAddress,
+        abi: PATIENT_NFT_ABI,
+        functionName: 'getTokenByAnalysis',
+        args: [metadata.analysisId]
+      });
+
+      return { tokenId, hash };
+    } catch (error) {
+      console.error('Error minting patient NFT:', error);
+      throw error instanceof NFTError ? error : new NFTError(
+        'Failed to mint NFT',
+        'MINT_ERROR'
+      );
+    }
+  }
+
+  async updateMetadata(analysisId: string, metadata: NFTMetadata): Promise<Hash> {
+    try {
+      // Get token ID from contract using analysis ID
+      const tokenId = await this.publicClient.readContract({
+        address: this.config.contractAddress,
+        abi: PATIENT_NFT_ABI,
+        functionName: 'getTokenByAnalysis',
+        args: [analysisId]
+      });
+
+      const tokenURI = await this.storeMetadata(metadata);
+
+      // Generate metadata hash using keccak256
+      const metadataHash = keccak256(toBytes(JSON.stringify(metadata)));
+
+      // Simulate the contract write first
+      const { request } = await this.publicClient.simulateContract({
+        address: this.config.contractAddress,
+        abi: PATIENT_NFT_ABI,
+        functionName: 'updateMetadata',
+        args: [tokenId, tokenURI, metadataHash],
+        account: this.account
+      });
+
+      // Execute the contract write if simulation succeeds
+      return await this.walletClient.writeContract(request);
+    } catch (error) {
+      console.error('Error updating metadata:', error);
+      throw error instanceof NFTError ? error : new NFTError(
+        'Failed to update metadata',
+        'UPDATE_ERROR'
+      );
+    }
+  }
+
+  async getMetadata(analysisId: string): Promise<NFTMetadata> {
+    try {
+      // Get token ID from contract using analysis ID
+      const tokenId = await this.publicClient.readContract({
+        address: this.config.contractAddress,
+        abi: PATIENT_NFT_ABI,
+        functionName: 'getTokenByAnalysis',
+        args: [analysisId]
+      });
+
+      // Get token URI
+      const tokenURI = await this.publicClient.readContract({
+        address: this.config.contractAddress,
+        abi: PATIENT_NFT_ABI,
+        functionName: 'tokenURI',
+        args: [tokenId]
+      });
+
+      // Parse metadata from URI
+      if (this.config.storage === 'datauri') {
+        const base64Data = tokenURI.split(',')[1];
+        const jsonStr = Buffer.from(base64Data, 'base64').toString();
+        return JSON.parse(jsonStr);
+      } else {
+        throw new NFTError('Only datauri storage is supported', 'UNSUPPORTED_STORAGE');
+      }
+    } catch (error) {
+      console.error('Error getting metadata:', error);
+      throw error instanceof NFTError ? error : new NFTError(
+        'Failed to get metadata',
+        'GET_METADATA_ERROR'
+      );
+    }
+  }
+
+  async verifyOwnership(analysisId: string, address: Address): Promise<boolean> {
+    try {
+      // Get token ID from contract using analysis ID
+      const tokenId = await this.publicClient.readContract({
+        address: this.config.contractAddress,
+        abi: PATIENT_NFT_ABI,
+        functionName: 'getTokenByAnalysis',
+        args: [analysisId]
+      });
+
+      const owner = await this.publicClient.readContract({
+        address: this.config.contractAddress,
+        abi: PATIENT_NFT_ABI,
+        functionName: 'ownerOf',
+        args: [tokenId]
+      });
+
+      return owner.toLowerCase() === address.toLowerCase();
+    } catch (error) {
+      console.error('Error verifying ownership:', error);
+      return false;
+    }
+  }
+
+  async exists(analysisId: string): Promise<boolean> {
+    try {
+      // Try to get token ID from contract using analysis ID
+      await this.publicClient.readContract({
+        address: this.config.contractAddress,
+        abi: PATIENT_NFT_ABI,
+        functionName: 'getTokenByAnalysis',
+        args: [analysisId]
+      });
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+}

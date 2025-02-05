@@ -8,14 +8,21 @@
     "build": "tsc",
     "test": "jest",
     "lint": "eslint . --ext .ts",
-    "format": "prettier --write \"src/**/*.ts\""
+    "format": "prettier --write \"src/**/*.ts\"",
+    "local-node": "cd src/blockchain && npx hardhat node",
+    "contract:compile": "cd src/blockchain && npx hardhat compile",
+    "contract:test": "cd src/blockchain && npx hardhat test test/*.ts",
+    "contract:deploy:local": "cd src/blockchain && npx hardhat run scripts/deploy.ts --network localhost",
+    "contract:deploy:sepolia": "cd src/blockchain && npx hardhat run scripts/deploy.ts --network sepolia"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@types/uuid": "^10.0.0",
     "amqplib": "^0.10.5",
+    "axios": "^1.7.9",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
@@ -23,7 +30,8 @@
     "fhir-kit-client": "^1.9.2",
     "helmet": "^8.0.0",
     "openai": "^4.79.1",
-    "uuid": "^11.0.5"
+    "uuid": "^11.0.5",
+    "viem": "^2.22.17"
   },
   "devDependencies": {
     "@types/amqplib": "^0.10.6",

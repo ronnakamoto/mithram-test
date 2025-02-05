@@ -1,0 +1,331 @@
+import { Chain, Hash, Address } from 'viem';
+import { PatientNFTClient, NFTMetadata, NFTError } from '../contracts/PatientNFT';
+import { EventEmitter } from 'events';
+import { setTimeout } from 'timers/promises';
+
+/**
+ * Events emitted by NFTManager
+ */
+export enum NFTManagerEvent {
+  MINT_STARTED = 'mint:started',
+  MINT_SUCCESS = 'mint:success',
+  MINT_FAILED = 'mint:failed',
+  UPDATE_STARTED = 'update:started',
+  UPDATE_SUCCESS = 'update:success',
+  UPDATE_FAILED = 'update:failed',
+  QUEUE_ERROR = 'queue:error'
+}
+
+/**
+ * Configuration for NFTManager
+ */
+export interface NFTManagerConfig {
+  contractAddress: Address;
+  privateKey: `0x${string}`| string;
+  chain?: Chain;
+  maxRetries?: number;
+  retryDelay?: number; // milliseconds
+  storage?: 'ipfs' | 'datauri';
+  queueInterval?: number; // milliseconds
+}
+
+/**
+ * Result of an NFT operation
+ */
+export interface NFTOperationResult {
+  success: boolean;
+  tokenId?: bigint;
+  hash?: Hash;
+  error?: Error;
+  retryCount?: number;
+}
+
+/**
+ * Queued NFT operation
+ */
+interface QueuedOperation {
+  type: 'mint' | 'update';
+  metadata: NFTMetadata;
+  patientId?: string;
+  analysisId: string;
+  retryCount: number;
+  lastAttempt?: number;
+}
+
+/**
+ * Manages NFT operations with retry mechanisms and event emission
+ */
+export class NFTManager extends EventEmitter {
+  private client: PatientNFTClient;
+  private readonly maxRetries: number;
+  private readonly retryDelay: number;
+  private readonly queueInterval: number;
+  private pendingOperations: Map<string, Promise<NFTOperationResult>>;
+  private operationQueue: QueuedOperation[] = [];
+  private queueProcessor?: NodeJS.Timeout;
+
+  constructor(config: NFTManagerConfig) {
+    super();
+    
+    this.maxRetries = config.maxRetries ?? 3;
+    this.retryDelay = config.retryDelay ?? 1000;
+    this.queueInterval = config.queueInterval ?? 5000;
+    this.pendingOperations = new Map();
+
+    this.client = new PatientNFTClient({
+      contractAddress: config.contractAddress,
+      privateKey: config.privateKey as `0x${string}`,
+      chain: config.chain,
+      storage: config.storage
+    });
+
+    // Start queue processor
+    this.startQueueProcessor();
+  }
+
+  /**
+   * Queue an NFT mint operation
+   */
+  async queueNFTMint(params: {
+    patientId: string;
+    userId: string;
+    analysisId: string;
+    analysisData: any;
+  }): Promise<void> {
+    const metadata: NFTMetadata = {
+      patientId: params.patientId,
+      analysisId: params.analysisId,
+      userId: params.userId,
+      analysis: {
+        status: 'pending',
+        clinicalContext: undefined,
+        recommendations: undefined
+      },
+      timestamp: new Date().toISOString()
+    };
+
+    this.operationQueue.push({
+      type: 'mint',
+      metadata,
+      patientId: params.patientId,
+      analysisId: params.analysisId,
+      retryCount: 0
+    });
+  }
+
+  /**
+   * Queue an NFT metadata update operation
+   */
+  async queueMetadataUpdate(analysisId: string, metadata: NFTMetadata): Promise<void> {
+    this.operationQueue.push({
+      type: 'update',
+      metadata,
+      analysisId,
+      retryCount: 0
+    });
+  }
+
+  private startQueueProcessor(): void {
+    if (this.queueProcessor) {
+      clearInterval(this.queueProcessor);
+    }
+
+    this.queueProcessor = setInterval(async () => {
+      await this.processQueue();
+    }, this.queueInterval);
+  }
+
+  private async processQueue(): Promise<void> {
+    if (this.operationQueue.length === 0) return;
+
+    const now = Date.now();
+    const operation = this.operationQueue[0];
+
+    // Skip if we need to wait for retry delay
+    if (operation.lastAttempt && now - operation.lastAttempt < this.retryDelay * Math.pow(2, operation.retryCount - 1)) {
+      return;
+    }
+
+    try {
+      let result: NFTOperationResult;
+
+      if (operation.type === 'mint') {
+        result = await this.mintNFT(operation.patientId!, operation.metadata);
+      } else {
+        result = await this.updateNFT(operation.analysisId, operation.metadata);
+      }
+
+      if (result.success) {
+        this.operationQueue.shift(); // Remove successful operation
+      } else {
+        operation.retryCount++;
+        operation.lastAttempt = now;
+
+        if (operation.retryCount > this.maxRetries) {
+          this.emit(NFTManagerEvent.QUEUE_ERROR, {
+            operation,
+            error: new Error('Maximum retry attempts exceeded')
+          });
+          this.operationQueue.shift(); // Remove failed operation
+        }
+      }
+    } catch (error) {
+      operation.retryCount++;
+      operation.lastAttempt = now;
+
+      if (operation.retryCount > this.maxRetries) {
+        this.emit(NFTManagerEvent.QUEUE_ERROR, { operation, error });
+        this.operationQueue.shift(); // Remove failed operation
+      }
+    }
+  }
+
+  /**
+   * Mints a new NFT for a patient's analysis
+   */
+  async mintNFT(patientId: string, metadata: NFTMetadata): Promise<NFTOperationResult> {
+    const operationKey = `mint:${patientId}:${metadata.analysisId}`;
+    
+    if (this.pendingOperations.has(operationKey)) {
+      return this.pendingOperations.get(operationKey)!;
+    }
+
+    const operation = this.executeWithRetry(async (retryCount) => {
+      try {
+        this.emit(NFTManagerEvent.MINT_STARTED, { patientId, metadata, retryCount });
+
+        if (await this.client.exists(metadata.analysisId)) {
+          throw new NFTError('NFT already exists for this analysis', 'DUPLICATE_NFT');
+        }
+
+        const result = await this.client.mintPatientNFT(patientId, metadata);
+        
+        this.emit(NFTManagerEvent.MINT_SUCCESS, {
+          patientId,
+          metadata,
+          tokenId: result.tokenId,
+          hash: result.hash
+        });
+
+        return {
+          success: true,
+          tokenId: result.tokenId,
+          hash: result.hash,
+          retryCount
+        };
+      } catch (error) {
+        this.emit(NFTManagerEvent.MINT_FAILED, { patientId, metadata, error, retryCount });
+        throw error;
+      }
+    });
+
+    this.pendingOperations.set(operationKey, operation);
+    
+    try {
+      const result = await operation;
+      return result;
+    } finally {
+      this.pendingOperations.delete(operationKey);
+    }
+  }
+
+  /**
+   * Updates metadata for an existing NFT
+   */
+  async updateNFT(analysisId: string, metadata: NFTMetadata): Promise<NFTOperationResult> {
+    const operationKey = `update:${analysisId}`;
+    console.log('metadata', metadata);
+    
+    if (this.pendingOperations.has(operationKey)) {
+      return this.pendingOperations.get(operationKey)!;
+    }
+
+    const operation = this.executeWithRetry(async (retryCount) => {
+      try {
+        this.emit(NFTManagerEvent.UPDATE_STARTED, { analysisId, metadata, retryCount });
+
+        if (!(await this.client.exists(analysisId))) {
+          throw new NFTError('NFT does not exist for this analysis', 'NFT_NOT_FOUND');
+        }
+
+        const hash = await this.client.updateMetadata(analysisId, metadata);
+        
+        this.emit(NFTManagerEvent.UPDATE_SUCCESS, { analysisId, metadata, hash });
+
+        return {
+          success: true,
+          hash,
+          retryCount
+        };
+      } catch (error) {
+        this.emit(NFTManagerEvent.UPDATE_FAILED, { analysisId, metadata, error, retryCount });
+        throw error;
+      }
+    });
+
+    this.pendingOperations.set(operationKey, operation);
+    
+    try {
+      const result = await operation;
+      return result;
+    } finally {
+      this.pendingOperations.delete(operationKey);
+    }
+  }
+
+  /**
+   * Verifies ownership of an NFT
+   */
+  async verifyOwnership(analysisId: string, address: Address): Promise<boolean> {
+    return this.client.verifyOwnership(analysisId, address);
+  }
+
+  /**
+   * Retrieves metadata for an NFT
+   */
+  async getMetadata(analysisId: string): Promise<NFTMetadata> {
+    return this.client.getMetadata(analysisId);
+  }
+
+  /**
+   * Executes an operation with retry logic
+   */
+  private async executeWithRetry(
+    operation: (retryCount: number) => Promise<NFTOperationResult>
+  ): Promise<NFTOperationResult> {
+    let lastError: Error | undefined;
+    
+    for (let retryCount = 0; retryCount <= this.maxRetries; retryCount++) {
+      try {
+        if (retryCount > 0) {
+          await setTimeout(this.retryDelay * Math.pow(2, retryCount - 1));
+        }
+        
+        return await operation(retryCount);
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        
+        if (error instanceof NFTError) {
+          if (['DUPLICATE_NFT', 'NFT_NOT_FOUND', 'INVALID_METADATA'].includes(error.code)) {
+            throw error;
+          }
+        }
+        
+        if (retryCount === this.maxRetries) {
+          throw lastError;
+        }
+      }
+    }
+
+    throw lastError ?? new Error('Unknown error during retry');
+  }
+
+  /**
+   * Clean up resources
+   */
+  destroy(): void {
+    if (this.queueProcessor) {
+      clearInterval(this.queueProcessor);
+    }
+  }
+}
