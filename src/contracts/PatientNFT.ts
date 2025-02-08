@@ -14,6 +14,7 @@ import { privateKeyToAccount } from 'viem/accounts'
 import { mainnet, goerli, hardhat } from 'viem/chains'
 import { v5 as uuidv5 } from 'uuid'
 import { keccak256, toBytes } from 'viem/utils'
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
 // Custom error class for NFT operations
 export class NFTError extends Error {
@@ -29,7 +30,7 @@ export interface NFTClientConfig {
   transport?: Transport;
   contractAddress: Address;
   privateKey: `0x${string}`;
-  storage?: 'ipfs' | 'datauri';
+  storage?: 'ipfs' | 'filebase' | 'datauri';
   rpcUrl?: string;
 }
 
@@ -197,9 +198,44 @@ export class PatientNFTClient {
 
   private async storeMetadata(metadata: NFTMetadata): Promise<string> {
     if (this.config.storage === 'ipfs') {
-      throw new NFTError('IPFS storage not implemented yet', 'NOT_IMPLEMENTED');
+      const filebaseAccessKeyId = process.env.FILEBASE_ACCESS_KEY;
+      const filebaseSecretAccessKey = process.env.FILEBASE_SECRET_KEY;
+      const filebaseBucketName = process.env.FILEBASE_BUCKET_NAME || 'mithram';
+      const filebaseEndpoint = 'https://s3.filebase.com';
+
+      if (!filebaseAccessKeyId || !filebaseSecretAccessKey) {
+        throw new NFTError('Filebase credentials not found in environment variables', 'CONFIGURATION_ERROR');
+      }
+
+      try {
+        const s3Client = new S3Client({
+          endpoint: filebaseEndpoint,
+          region: 'us-east-1',
+          credentials: {
+            accessKeyId: filebaseAccessKeyId,
+            secretAccessKey: filebaseSecretAccessKey,
+          },
+        });
+
+        const objectKey = `metadata/${metadata.analysisId}-${Date.now()}.json`;
+        const putObjectParams = {
+          Bucket: filebaseBucketName,
+          Key: objectKey,
+          Body: JSON.stringify(metadata),
+          ContentType: 'application/json',
+        };
+
+        const command = new PutObjectCommand(putObjectParams);
+        await s3Client.send(command);
+
+        return `https://${filebaseBucketName}.s3.filebase.com/${objectKey}`;
+      } catch (error) {
+        console.error('Error uploading to Filebase:', error);
+        throw new NFTError(`Failed to upload metadata to Filebase: ${error.message}`, 'STORAGE_ERROR');
+      }
     }
-    // Store as data URI
+
+    // Store as data URI (default fallback)
     return `data:application/json;base64,${Buffer.from(JSON.stringify(metadata)).toString('base64')}`;
   }
 
