@@ -200,23 +200,18 @@ export class AnalysisQueue {
             this.activeJobs.set(job.taskId, { patientId: job.patient.id });
 
             console.log('Processing analysis:', job);
-            await this.updateAnalysisStatus(job.taskId, 'in-progress', 10);
 
             const patientData = job.patient;
             console.log('Fetched patient data:', patientData);
-            await this.updateAnalysisStatus(job.taskId, 'in-progress', 30);
 
             const clinicalContext = this.generateClinicalContext(patientData);
-            await this.updateAnalysisStatus(job.taskId, 'in-progress', 50);
 
             const recommendations = await this.generateRecommendations(clinicalContext);
-            await this.updateAnalysisStatus(job.taskId, 'in-progress', 70);
 
             // Update NFT metadata with completed analysis
             await this.nftManager.queueMetadataUpdate(job.taskId, {
                 patientId: patientData.id,
                 analysisId: job.taskId,
-                userId: job.userId,
                 analysis: {
                     status: 'completed',
                     clinicalContext,
@@ -225,9 +220,8 @@ export class AnalysisQueue {
                 },
                 timestamp: new Date().toISOString()
             });
-
-            await this.updateAnalysisStatus(job.taskId, 'completed', 100);
             console.log(`Analysis completed for task ${job.taskId}`);
+            this.activeJobs.delete(job.taskId);
         } catch (error) {
             console.error(`Error processing analysis for task ${job.taskId}:`, error);
             await this.handleAnalysisError(job.taskId, error);
@@ -272,32 +266,6 @@ export class AnalysisQueue {
         } catch (error) {
             console.error('Error generating recommendations:', error);
             throw error;
-        }
-    }
-
-    private async updateAnalysisStatus(taskId: string, status: string, progress: number): Promise<void> {
-        // Log progress for monitoring
-        console.log(`Analysis ${taskId}: ${status} (${progress}%)`);
-
-        // Only update NFT metadata for final states
-        if (status === 'completed' || status === 'failed') {
-            const jobInfo = this.activeJobs.get(taskId);
-            if (!jobInfo) {
-                throw new Error(`No active job found for task ${taskId}`);
-            }
-
-            await this.nftManager.queueMetadataUpdate(taskId, {
-                patientId: jobInfo.patientId,
-                analysisId: taskId,
-                analysis: {
-                    status,
-                    completedAt: new Date().toISOString(),
-                },
-                timestamp: new Date().toISOString()
-            });
-
-            // Clean up the job info
-            this.activeJobs.delete(taskId);
         }
     }
 

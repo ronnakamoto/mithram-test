@@ -14,7 +14,8 @@ import { privateKeyToAccount } from 'viem/accounts'
 import { mainnet, goerli, hardhat } from 'viem/chains'
 import { v5 as uuidv5 } from 'uuid'
 import { keccak256, toBytes } from 'viem/utils'
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import axios from 'axios';
 
 // Custom error class for NFT operations
 export class NFTError extends Error {
@@ -333,13 +334,65 @@ export class PatientNFTClient {
         args: [tokenId]
       });
 
+      console.log('Token URI:', tokenURI);
+
       // Parse metadata from URI
       if (this.config.storage === 'datauri') {
         const base64Data = tokenURI.split(',')[1];
         const jsonStr = Buffer.from(base64Data, 'base64').toString();
         return JSON.parse(jsonStr);
+      } else if (this.config.storage === 'ipfs') {
+        try {
+          const filebaseAccessKeyId = process.env.FILEBASE_ACCESS_KEY;
+          const filebaseSecretAccessKey = process.env.FILEBASE_SECRET_KEY;
+          const filebaseBucketName = process.env.FILEBASE_BUCKET_NAME || 'mithram';
+          const filebaseEndpoint = 'https://s3.filebase.com';
+
+          if (!filebaseAccessKeyId || !filebaseSecretAccessKey) {
+            throw new NFTError('Filebase credentials not found in environment variables', 'CONFIGURATION_ERROR');
+          }
+
+          // Extract object key from the tokenURI
+          const objectKey = new URL(tokenURI).pathname.slice(1); // Remove leading slash
+
+          // Create S3 client for Filebase
+          const s3Client = new S3Client({
+            endpoint: filebaseEndpoint,
+            region: 'us-east-1',
+            credentials: {
+              accessKeyId: filebaseAccessKeyId,
+              secretAccessKey: filebaseSecretAccessKey,
+            },
+          });
+
+          // Get the object from Filebase
+          const command = new GetObjectCommand({
+            Bucket: filebaseBucketName,
+            Key: objectKey,
+          });
+
+          const response = await s3Client.send(command);
+          
+          // Convert the response stream to string
+          const streamToString = (stream: any): Promise<string> =>
+            new Promise((resolve, reject) => {
+              const chunks: any[] = [];
+              stream.on('data', (chunk: any) => chunks.push(chunk));
+              stream.on('error', reject);
+              stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+            });
+
+          const bodyContents = await streamToString(response.Body);
+          return JSON.parse(bodyContents);
+        } catch (error: any) {
+          console.error('Error fetching metadata from Filebase:', error);
+          throw new NFTError(
+            `Failed to fetch metadata from Filebase: ${error.message}`,
+            'FILEBASE_FETCH_ERROR'
+          );
+        }
       } else {
-        throw new NFTError('Only datauri storage is supported', 'UNSUPPORTED_STORAGE');
+        throw new NFTError(`Storage type '${this.config.storage}' is not supported`, 'UNSUPPORTED_STORAGE');
       }
     } catch (error) {
       console.error('Error getting metadata:', error);
