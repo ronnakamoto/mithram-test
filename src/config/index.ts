@@ -62,10 +62,10 @@ export const config = {
 
     // SMART App Configuration
     smartApp: {
-        launchUrl: process.env.SMART_APP_LAUNCH_URL || 'https://example.com/smart/launch',
-        clientId: process.env.SMART_APP_CLIENT_ID,
+        launchUrl: process.env.SMART_APP_LAUNCH_URL || 'http://localhost:5173/launch',
+        clientId: process.env.SMART_APP_CLIENT_ID || 'mithram-ai-expert-panel',
         scope: 'patient/*.read launch/patient',
-        redirectUri: process.env.SMART_APP_REDIRECT_URI
+        redirectUri: process.env.SMART_APP_REDIRECT_URI || 'http://localhost:5173/callback'
     },
 
     // System Information

@@ -343,14 +343,10 @@ function generateResponseCards(taskId: string, context: any): Card[] {
 
     // SMART launch URL with required parameters
     const smartLaunchUrl = new URL(config.smartApp.launchUrl);
-    smartLaunchUrl.searchParams.set('launch', taskId);
-    smartLaunchUrl.searchParams.set('iss', config.fhir.baseUrl);
-    smartLaunchUrl.searchParams.set('client_id', config.smartApp.clientId);
-    smartLaunchUrl.searchParams.set('redirect_uri', config.smartApp.redirectUri);
-    smartLaunchUrl.searchParams.set('scope', config.smartApp.scope);
-    smartLaunchUrl.searchParams.set('response_type', 'code');
-    smartLaunchUrl.searchParams.set('state', taskId);
-    smartLaunchUrl.searchParams.set('aud', config.fhir.baseUrl);
+    // smartLaunchUrl.searchParams.set('launch', taskId);
+    // smartLaunchUrl.searchParams.set('iss', config.fhir.baseUrl);
+    // smartLaunchUrl.searchParams.set('client_id', config.smartApp.clientId);
+    // smartLaunchUrl.searchParams.set('redirect_uri', config.smartApp.redirectUri);
 
     // Main card with SMART app launch
     cards.push({
