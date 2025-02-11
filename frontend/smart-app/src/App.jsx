@@ -3,6 +3,7 @@ import { Route, Switch, Link } from 'wouter'
 import Home from './components/Home'
 import AnalysisDetails from './components/AnalysisDetails'
 import Launch from './components/Launch'
+import Callback from './components/Callback'
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
         <Route path="/" component={Home} />
         <Route path="/analysis/:id" component={AnalysisDetails} />
         <Route path="/launch" component={Launch} />
+        <Route path="/callback" component={Callback} />
       </Switch>
 
       {/* Footer */}
