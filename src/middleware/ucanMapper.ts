@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import axios from 'axios';
-import { encode } from '@ipld/dag-json';
-import { ucans } from '@ucans/ucans';
+import { build, EdKeypair, Capability, Ability } from '@ucans/ucans';
 
 interface IntrospectionResponse {
     active: boolean;
@@ -14,95 +13,32 @@ interface IntrospectionResponse {
     [key: string]: any;
 }
 
-// UCAN capability types with enhanced projection support
+// Update the interface to match @ucans/ucans Capability type
 interface UCANCapability {
-    with: string;        // Resource identifier (e.g., fhir:patient/*, ipfs:*)
-    can: string;         // Action type (e.g., read, write)
-    nb?: {
-        context?: string;    // For launch contexts
-        fields?: string[];   // For data projection - specific fields allowed
-        filters?: {          // For data filtering
-            type?: string;
-            value?: any;
-        }[];
-    };
+    with: { scheme: string; hierPart: string; query?: string };
+    can: Ability;
 }
 
-// Enhanced SMART scope to UCAN capability mapping
-function mapSMARTScopeToUCAN(scope: string, context: { patient?: string, fhirUser?: string } = {}): UCANCapability[] {
-    const capabilities: UCANCapability[] = [];
+function mapSMARTScopeToUCAN(scope: string, context: { patient?: string; fhirUser?: string }): Capability[] {
     const scopes = scope.split(' ');
-    
-    for (const singleScope of scopes) {
-        if (singleScope.includes('/*.')) {
-            // Handle wildcard resource scopes like patient/*.read
-            const [resource, action] = singleScope.split('/*.');
-            capabilities.push({
-                with: `fhir:${resource}/*`,
-                can: action,
-                nb: {
-                    fields: ['*'],  // Allow all fields for wildcard scopes
-                    filters: context.patient ? [{
-                        type: 'patient',
-                        value: context.patient
-                    }] : undefined
-                }
-            });
-            
-            // Add corresponding IPFS capability for AI insights
-            capabilities.push({
-                with: `ipfs:${resource}/insights`,
-                can: action,
-                nb: {
-                    fields: ['summary', 'recommendations', 'metadata'],  // Default allowed fields
-                    filters: context.patient ? [{
-                        type: 'patient',
-                        value: context.patient
-                    }] : undefined
-                }
-            });
-        } else if (singleScope.startsWith('launch/')) {
-            // Handle launch scopes
-            const contextType = singleScope.replace('launch/', '');
-            capabilities.push({
-                with: 'fhir:launch',
-                can: 'context',
-                nb: { context: contextType }
-            });
-        } else if (singleScope.includes('.')) {
-            // Handle specific resource scopes like patient/Observation.read
-            const [resourcePath, action] = singleScope.split('.');
-            const [resource, type] = resourcePath.split('/');
-            
-            // FHIR resource capability
-            capabilities.push({
-                with: `fhir:${resource}/${type}`,
-                can: action,
-                nb: {
-                    fields: ['*'],  // Allow all fields for specific resources
-                    filters: context.patient ? [{
-                        type: 'patient',
-                        value: context.patient
-                    }] : undefined
-                }
-            });
-            
-            // Corresponding IPFS insight capability
-            capabilities.push({
-                with: `ipfs:${resource}/${type}/insights`,
-                can: action,
-                nb: {
-                    fields: ['summary', 'analysis', 'metadata'],
-                    filters: context.patient ? [{
-                        type: 'patient',
-                        value: context.patient
-                    }] : undefined
-                }
-            });
-        }
-    }
-    
-    return capabilities;
+    return scopes.map(scope => {
+        const [resource, permission] = scope.split('/');
+        
+        // Convert SMART scope to UCAN capability
+        const capability: Capability = {
+            with: {
+                scheme: 'fhir',
+                hierPart: `/${resource}`,
+                ...(context.patient && { query: `?patient=${context.patient}` })
+            },
+            can: {
+                namespace: 'fhir',
+                segments: [permission]
+            }
+        };
+
+        return capability;
+    });
 }
 
 export const ucanMapper = async (req: Request, res: Response, next: NextFunction) => {
@@ -153,6 +89,37 @@ export const ucanMapper = async (req: Request, res: Response, next: NextFunction
         if (introspectionData.exp && introspectionData.exp < Math.floor(Date.now() / 1000)) {
             return res.status(401).json({ error: 'Token has expired' });
         }
+
+        // Map SMART scopes to UCAN capabilities with context
+        const ucanCapabilitiesForToken = mapSMARTScopeToUCAN(introspectionData.scope, {
+            patient: introspectionData.patient,
+            fhirUser: introspectionData.fhirUser
+        });
+
+        // Ensure the KEYPAIR_SECRET is provided
+        if (!process.env.KEYPAIR_SECRET) {
+            throw new Error('KEYPAIR_SECRET environment variable not set');
+        }
+
+        // Generate keypair from the secret
+        const keypair = await EdKeypair.create()
+        
+
+        // Build the UCAN token using the @ucans/ucans build function
+        const ucan = await build({
+            issuer: keypair,
+            audience: keypair.did(),
+            capabilities: ucanCapabilitiesForToken,
+            expiration: introspectionData.exp,
+            facts: [{
+                client_id: introspectionData.client_id,
+                fhir_user: introspectionData.fhirUser
+            }]
+        });
+
+        // Convert UCAN to string format for header
+        const ucanToken = ucan.toString();
+        res.setHeader('X-UCAN-Token', ucanToken);
 
         next();
     } catch (error) {
