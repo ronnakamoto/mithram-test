@@ -274,6 +274,22 @@ export class NFTManager extends EventEmitter {
   }
 
   /**
+   * Get metadata for a patient by their ID
+   */
+  async getMetadataByPatientId(patientId: string): Promise<NFTMetadata> {
+    try {
+      return await this.client.getMetadataByPatientId(patientId);
+    } catch (error: any) {
+      // Re-throw NFTError instances directly
+      if (error instanceof NFTError) {
+        throw error;
+      }
+      // Wrap other errors
+      throw new NFTError(`Failed to fetch metadata for patient ${patientId}: ${error.message}`, 'METADATA_FETCH_ERROR');
+    }
+  }
+
+  /**
    * Verifies ownership of an NFT
    */
   async verifyOwnership(analysisId: string, address: Address): Promise<boolean> {
