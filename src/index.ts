@@ -10,8 +10,12 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3002; // Default to 3002 if PORT is not set
 
-// Enable CORS for all routes
-// app.use(cors());
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || 'http://localhost:5173', // Frontend URL
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true // Enable credentials (cookies, authorization headers, etc)
+}));
 
 app.use(express.json());
 app.use('/', cdsHooksService);

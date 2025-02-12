@@ -1,6 +1,7 @@
 import { useParams, useLocation } from 'wouter'
 import { useEffect, useState } from 'react'
 import Client from 'fhir-kit-client'
+import apiConfig from '../config/api'
 
 const PatientCard = ({ patient }) => {
   if (!patient) return null;
@@ -153,38 +154,23 @@ function AnalysisDetails() {
         const patient = await fhirClient.read({ resourceType: 'Patient', id: parsedUser.patient })
         setPatientData(patient)
 
-        // Mock analysis data - in production, this would come from your API
-        setAnalysisData({
-          status: "completed",
-          recommendations: {
-            specialists: [
-              {
-                specialty: "Nephrology",
-                justification: "Patient has chronic rejection of renal transplant, which requires ongoing management and evaluation to prevent further deterioration of renal function.",
-                priority: "urgent",
-                confidence: 0.9,
-                timeframe: "1-2 weeks"
-              },
-              {
-                specialty: "Endocrinology",
-                justification: "Severe hypothyroidism requires specialist management to adjust thyroid hormone replacement therapy and monitor for complications.",
-                priority: "routine",
-                confidence: 0.85,
-                timeframe: "4-12 weeks"
-              }
-            ],
-            riskFactors: [
-              "Chronic renal transplant rejection",
-              "Severe hypothyroidism",
-              "Essential hypertension"
-            ],
-            confidenceMetrics: {
-              overallConfidence: 0.88,
-              dataCompleteness: 0.85,
-              guidelineAdherence: 0.9
+        // Fetch analysis data from our backend API
+        try {
+          const response = await fetch(apiConfig.endpoints.patient.metadata(parsedUser.patient))
+          if (!response.ok) {
+            if (response.status === 404) {
+              console.log('No analysis found for patient')
+              setAnalysisData(null)
+              return
             }
+            throw new Error(`Failed to fetch analysis: ${response.statusText}`)
           }
-        })
+          const metadata = await response.json()
+          setAnalysisData(metadata.analysis)
+        } catch (error) {
+          console.error('Error fetching analysis:', error)
+          setError('Failed to fetch analysis data. Please try again later.')
+        }
       } catch (err) {
         console.error('Failed to load user data:', err)
         setError(err.message)
