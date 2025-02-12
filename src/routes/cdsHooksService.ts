@@ -150,6 +150,35 @@ router.get('/task/:taskId/status', async (req: Request, res: Response) => {
     }
 });
 
+// Patient metadata endpoint
+router.get('/patient/:patientId/metadata', async (req: Request, res: Response) => {
+    try {
+        const patientId = req.params.patientId;
+        console.log('Fetching metadata for patient:', patientId);
+        if (!patientId) {
+            return res.status(400).json({ 
+                error: 'Missing patientId parameter' 
+            });
+        }
+
+        const metadata = await nftManager.getMetadataByPatientId(patientId);
+        res.json(metadata);
+    } catch (error: any) {
+        console.error(`Error fetching patient metadata: ${error.message}`);
+        
+        if (error.code === 'PATIENT_NOT_FOUND') {
+            return res.status(404).json({ 
+                error: 'Patient not found' 
+            });
+        }
+        
+        res.status(500).json({ 
+            error: 'Failed to fetch patient metadata',
+            details: error.message 
+        });
+    }
+});
+
 function validateRequest(request: CDSHookRequest): string | null {
     if (!request) return 'Missing request body';
     if (!request.hookInstance) return 'Missing hookInstance';

@@ -135,6 +135,25 @@ export const PATIENT_NFT_ABI = [
     stateMutability: 'nonpayable',
     type: 'function',
   },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "patientId",
+        "type": "string"
+      }
+    ],
+    "name": "getTokenByPatient",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
 ] as const;
 
 // UUID namespace for consistent token ID generation
@@ -403,6 +422,80 @@ export class PatientNFTClient {
     }
   }
 
+  async getMetadataByPatientId(patientId: string): Promise<NFTMetadata> {
+    try {
+      // Get token ID for the patient
+      const tokenId = await this.publicClient.readContract({
+        address: this.config.contractAddress,
+        abi: PATIENT_NFT_ABI,
+        functionName: 'getTokenByPatient',
+        args: [patientId]
+      });
+
+      // Get token URI
+      const tokenUri = await this.publicClient.readContract({
+        address: this.config.contractAddress,
+        abi: PATIENT_NFT_ABI,
+        functionName: 'tokenURI',
+        args: [tokenId]
+      });
+
+      console.log('Token URI:', tokenUri);
+
+      // Parse metadata from URI based on storage type
+      if (this.config.storage === 'datauri') {
+        const base64Data = tokenUri.split(',')[1];
+        const jsonStr = Buffer.from(base64Data, 'base64').toString();
+        return JSON.parse(jsonStr);
+      } else if (this.config.storage === 'ipfs' || this.config.storage === 'filebase') {
+        const filebaseAccessKeyId = process.env.FILEBASE_ACCESS_KEY;
+        const filebaseSecretAccessKey = process.env.FILEBASE_SECRET_KEY;
+        const filebaseBucketName = process.env.FILEBASE_BUCKET_NAME || 'mithram';
+        const filebaseEndpoint = 'https://s3.filebase.com';
+
+        if (!filebaseAccessKeyId || !filebaseSecretAccessKey) {
+          throw new NFTError('Filebase credentials not found in environment variables', 'CONFIGURATION_ERROR');
+        }
+
+        // Extract object key from the tokenUri
+        const objectKey = new URL(tokenUri).pathname.slice(1); // Remove leading slash
+
+        // Create S3 client for Filebase
+        const s3Client = new S3Client({
+          endpoint: filebaseEndpoint,
+          region: 'us-east-1',
+          credentials: {
+            accessKeyId: filebaseAccessKeyId,
+            secretAccessKey: filebaseSecretAccessKey,
+          },
+        });
+
+        // Get the object from Filebase
+        const command = new GetObjectCommand({
+          Bucket: filebaseBucketName,
+          Key: objectKey,
+        });
+
+        const response = await s3Client.send(command);
+        const jsonStr = await this.streamToString(response.Body);
+        return JSON.parse(jsonStr);
+      } else {
+        // Direct HTTP fetch for other storage types
+        const response = await axios.get(tokenUri);
+        return response.data as NFTMetadata;
+      }
+    } catch (error: any) {
+      // Check if it's a contract revert error for patient not found
+      if (error.message?.includes('Patient not found')) {
+        throw new NFTError('Patient not found', 'PATIENT_NOT_FOUND');
+      }
+      if (error instanceof NFTError) {
+        throw error;
+      }
+      throw new NFTError(`Failed to fetch metadata for patient ${patientId}: ${error.message}`, 'METADATA_FETCH_ERROR');
+    }
+  }
+
   async verifyOwnership(analysisId: string, address: Address): Promise<boolean> {
     try {
       // Get token ID from contract using analysis ID
@@ -440,5 +533,14 @@ export class PatientNFTClient {
     } catch (error) {
       return false;
     }
+  }
+
+  private async streamToString(stream: any): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const chunks: any[] = [];
+      stream.on('data', (chunk: any) => chunks.push(chunk));
+      stream.on('error', reject);
+      stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    });
   }
 }
