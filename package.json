@@ -22,6 +22,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.744.0",
     "@types/uuid": "^10.0.0",
+    "@ucans/ucans": "^0.12.0",
     "amqplib": "^0.10.5",
     "axios": "^1.7.9",
     "cors": "^2.8.5",
@@ -31,6 +32,7 @@
     "fhir-kit-client": "^1.9.2",
     "helmet": "^8.0.0",
     "openai": "^4.79.1",
+    "uint8arrays": "^5.1.0",
     "uuid": "^11.0.5",
     "viem": "^2.22.17"
   },
