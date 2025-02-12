@@ -16,6 +16,7 @@ function Launch() {
           aud,
           launch,
         }
+        localStorage.setItem('launchParams', JSON.stringify(extraQueryParams))
         
         // Log the launch parameters
         console.log('SMART App Launch Parameters:', extraQueryParams)

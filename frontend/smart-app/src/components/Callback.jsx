@@ -42,7 +42,9 @@ function Callback() {
       window.history.replaceState({}, document.title, window.location.pathname)
       await oidcClient.clearStaleState()
       
-      setLocation('/')
+      // Redirect to analysis page with patient ID
+      const analysisId = response.patient || 'default'
+      setLocation(`/analysis/${analysisId}`)
     } catch (err) {
       console.error('Failed to complete authentication:', err)
       sessionStorage.removeItem(`processed_${code}`)
