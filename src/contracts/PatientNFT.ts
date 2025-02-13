@@ -303,12 +303,12 @@ export class PatientNFTClient {
 
   async updateMetadata(analysisId: string, metadata: NFTMetadata): Promise<Hash> {
     try {
-      // Get token ID from contract using analysis ID
+      // Get token ID using patient ID since the analysis ID won't exist yet
       const tokenId = await this.publicClient.readContract({
         address: this.config.contractAddress,
         abi: PATIENT_NFT_ABI,
-        functionName: 'getTokenByAnalysis',
-        args: [analysisId]
+        functionName: 'getTokenByPatient',
+        args: [metadata.patientId]
       });
 
       const tokenURI = await this.storeMetadata(metadata);

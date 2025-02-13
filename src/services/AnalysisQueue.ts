@@ -105,8 +105,6 @@ export class AnalysisQueue {
             const patientId = patient.id;
             const analysisId = uuidv4();
 
-            console.log("patient.conditions[0].resource: ", patient.conditions[0].resource, patient.conditions[0].response)
-
             // Queue NFT minting asynchronously
             await this.nftManager.queueNFTMint({
                 patientId,
@@ -218,7 +216,8 @@ export class AnalysisQueue {
                     recommendations,
                     completedAt: new Date().toISOString()
                 },
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                previousAnalysis: null // Will be set by NFTManager based on existing token
             });
             console.log(`Analysis completed for task ${job.taskId}`);
             this.activeJobs.delete(job.taskId);
@@ -273,13 +272,15 @@ export class AnalysisQueue {
         // Update NFT metadata with error status
         await this.nftManager.queueMetadataUpdate(taskId, {
             analysisId: taskId,
+            patientId: this.activeJobs.get(taskId)?.patientId,
             analysis: {
                 status: 'failed',
                 error: error.message,
                 failedAt: new Date().toISOString()
             },
-            timestamp: new Date().toISOString()
-        } as any); // Using 'as any' since we're only updating status fields
+            timestamp: new Date().toISOString(),
+            previousAnalysis: null // Will be set by NFTManager based on existing token
+        });
     }
 
     private async republishWithDelay(msg: amqp.ConsumeMessage, retryCount: number): Promise<void> {

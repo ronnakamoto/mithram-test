@@ -93,37 +93,84 @@ export class NFTManager extends EventEmitter {
     analysisId: string;
     analysisData: any;
   }): Promise<void> {
+    const { patientId, userId, analysisId, analysisData } = params;
+
     const metadata: NFTMetadata = {
-      patientId: params.patientId,
-      analysisId: params.analysisId,
-      userId: params.userId,
-      analysis: {
-        status: 'pending',
-        clinicalContext: undefined,
-        recommendations: undefined
-      },
-      timestamp: new Date().toISOString()
+      patientId,
+      analysisId,
+      analysis: analysisData,
+      timestamp: new Date().toISOString(),
+      previousAnalysis: null
     };
 
-    this.operationQueue.push({
-      type: 'mint',
-      metadata,
-      patientId: params.patientId,
-      analysisId: params.analysisId,
-      retryCount: 0
-    });
+    // Check if patient already has a token
+    try {
+      await this.client.getMetadataByPatientId(patientId);
+      // If we get here, patient has a token - update instead of mint
+      await this.queueMetadataUpdate(analysisId, metadata);
+    } catch (error) {
+      // If PATIENT_NOT_FOUND, patient doesn't have a token yet - proceed with minting
+      if (error instanceof NFTError && error.code === 'PATIENT_NOT_FOUND') {
+        const operationKey = `mint:${analysisId}`;
+        
+        if (this.pendingOperations.has(operationKey)) {
+          return;
+        }
+
+        const operation = this.executeWithRetry(async (retryCount) => {
+          try {
+            this.emit(NFTManagerEvent.MINT_STARTED, { analysisId, metadata, retryCount });
+            const result = await this.mintNFT(patientId, metadata);
+            this.emit(NFTManagerEvent.MINT_SUCCESS, { analysisId, metadata, result });
+          } catch (error) {
+            this.emit(NFTManagerEvent.MINT_FAILED, { analysisId, metadata, error, retryCount });
+            throw error;
+          }
+        });
+
+        this.pendingOperations.set(operationKey, operation);
+        
+        try {
+          await operation;
+        } finally {
+          this.pendingOperations.delete(operationKey);
+        }
+      } else {
+        // If it's some other error, throw it
+        throw error;
+      }
+    }
   }
 
   /**
    * Queue an NFT metadata update operation
    */
-  async queueMetadataUpdate(analysisId: string, metadata: NFTMetadata): Promise<void> {
-    this.operationQueue.push({
-      type: 'update',
-      metadata,
-      analysisId,
-      retryCount: 0
+  async queueMetadataUpdate(analysisId: string, metadata: NFTMetadata): Promise<NFTOperationResult> {
+    const operationKey = `update:${analysisId}`;
+    
+    if (this.pendingOperations.has(operationKey)) {
+      return this.pendingOperations.get(operationKey)!;
+    }
+
+    const operation = this.executeWithRetry(async (retryCount: number) => {
+      try {
+        this.emit(NFTManagerEvent.UPDATE_STARTED, { analysisId, metadata, retryCount });
+        const result = await this.updateNFT(analysisId, metadata);
+        this.emit(NFTManagerEvent.UPDATE_SUCCESS, { analysisId, metadata, result });
+        return result;
+      } catch (error) {
+        this.emit(NFTManagerEvent.UPDATE_FAILED, { analysisId, metadata, error, retryCount });
+        throw error;
+      }
     });
+
+    this.pendingOperations.set(operationKey, operation);
+    
+    try {
+      return await operation;
+    } finally {
+      this.pendingOperations.delete(operationKey);
+    }
   }
 
   private startQueueProcessor(): void {
@@ -244,18 +291,22 @@ export class NFTManager extends EventEmitter {
       try {
         this.emit(NFTManagerEvent.UPDATE_STARTED, { analysisId, metadata, retryCount });
 
-        // Check if there are any previous completed analyses for this patient
+        // Check if there are any previous analyses for this patient
         try {
           const patientMetadata = await this.client.getMetadataByPatientId(metadata.patientId);
+          console.log("patientMetadata", patientMetadata);
+          console.log("analysisId", metadata.analysisId);
           
-          // If we found metadata and it's not the current analysis (which might be pending)
-          // and it's a completed analysis, use it as previous
+          // If we found metadata and it's not the current analysis
           if (patientMetadata && 
-              patientMetadata.analysisId !== metadata.analysisId && 
-              patientMetadata.analysis.status === 'completed') {
-            metadata.previousAnalysis = patientMetadata.analysisId;
+              patientMetadata.analysisId !== metadata.analysisId) {
+            // Get the token URI to extract the object key
+            const tokenUri = await this.client.getTokenURI(patientMetadata.analysisId);
+            // Extract object key from the tokenUri
+            const objectKey = new URL(tokenUri).pathname.slice(1); // Remove leading slash
+            metadata.previousAnalysis = objectKey;
           } else {
-            metadata.previousAnalysis = null;
+            metadata.previousAnalysis = patientMetadata.previousAnalysis;
           }
         } catch (error) {
           // If we can't find any metadata for the patient, this is the first analysis
