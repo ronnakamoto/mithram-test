@@ -149,13 +149,13 @@ export const ucanMapper = async (req: Request, res: Response, next: NextFunction
     }
 }
 
-// Add type definition for the custom request property
-declare global {
-    namespace Express {
-        interface Request {
-            tokenIntrospection?: IntrospectionResponse & { ucanCapabilities: UCANCapability[] };
-        }
-    }
-}
+// // Add type definition for the custom request property
+// declare global {
+//     namespace Express {
+//         interface Request {
+//             tokenIntrospection?: IntrospectionResponse & { ucanCapabilities: UCANCapability[] };
+//         }
+//     }
+// }
 
 export default ucanMapper;
