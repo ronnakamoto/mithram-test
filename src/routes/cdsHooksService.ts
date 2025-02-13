@@ -8,6 +8,8 @@ import { CDSHookRequest, Card, CDSServiceResponse, Indicator } from '../types/cd
 import { config } from '../config';
 import { Specialist } from '../services/OpenAIService';
 import type { Chain } from 'viem/chains';
+import { ucanMapper } from '../middleware/ucanMapper'; 
+import authMiddleware from '../middleware/authMiddleware';
 
 const router = express.Router();
 
@@ -151,10 +153,10 @@ router.get('/task/:taskId/status', async (req: Request, res: Response) => {
 });
 
 // Patient metadata endpoint
-router.get('/patient/:patientId/metadata', async (req: Request, res: Response) => {
+router.get('/patient/:patientId/metadata', authMiddleware, async (req: Request, res: Response) => {
     try {
         const patientId = req.params.patientId;
-        console.log('Fetching metadata for patient:', patientId);
+        
         if (!patientId) {
             return res.status(400).json({ 
                 error: 'Missing patientId parameter' 
@@ -164,7 +166,7 @@ router.get('/patient/:patientId/metadata', async (req: Request, res: Response) =
         const metadata = await nftManager.getMetadataByPatientId(patientId);
         res.json(metadata);
     } catch (error: any) {
-        console.error(`Error fetching patient metadata: ${error.message}`);
+        console.error('Error fetching patient metadata:', error);
         
         if (error.code === 'PATIENT_NOT_FOUND') {
             return res.status(404).json({ 

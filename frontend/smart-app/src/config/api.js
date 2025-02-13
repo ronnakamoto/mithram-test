@@ -5,7 +5,7 @@ export const config = {
   apiUrl: API_URL,
   endpoints: {
     patient: {
-      metadata: (patientId) => `${API_URL}/patient/${patientId}/metadata`
+      metadata: (patientId, userId) => `${API_URL}/patient/${patientId}/metadata?userId=${userId}`
     }
   }
 }
