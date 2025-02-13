@@ -13,6 +13,7 @@ export enum NFTManagerEvent {
   UPDATE_STARTED = 'update:started',
   UPDATE_SUCCESS = 'update:success',
   UPDATE_FAILED = 'update:failed',
+  UPDATE_COMPLETED = 'update:completed',
   QUEUE_ERROR = 'queue:error'
 }
 
@@ -234,7 +235,6 @@ export class NFTManager extends EventEmitter {
    */
   async updateNFT(analysisId: string, metadata: NFTMetadata): Promise<NFTOperationResult> {
     const operationKey = `update:${analysisId}`;
-    console.log('metadata', metadata);
     
     if (this.pendingOperations.has(operationKey)) {
       return this.pendingOperations.get(operationKey)!;
@@ -244,19 +244,28 @@ export class NFTManager extends EventEmitter {
       try {
         this.emit(NFTManagerEvent.UPDATE_STARTED, { analysisId, metadata, retryCount });
 
-        if (!(await this.client.exists(analysisId))) {
-          throw new NFTError('NFT does not exist for this analysis', 'NFT_NOT_FOUND');
+        // Check if there are any previous completed analyses for this patient
+        try {
+          const patientMetadata = await this.client.getMetadataByPatientId(metadata.patientId);
+          
+          // If we found metadata and it's not the current analysis (which might be pending)
+          // and it's a completed analysis, use it as previous
+          if (patientMetadata && 
+              patientMetadata.analysisId !== metadata.analysisId && 
+              patientMetadata.analysis.status === 'completed') {
+            metadata.previousAnalysis = patientMetadata.analysisId;
+          } else {
+            metadata.previousAnalysis = null;
+          }
+        } catch (error) {
+          // If we can't find any metadata for the patient, this is the first analysis
+          metadata.previousAnalysis = null;
         }
 
         const hash = await this.client.updateMetadata(analysisId, metadata);
         
-        this.emit(NFTManagerEvent.UPDATE_SUCCESS, { analysisId, metadata, hash });
-
-        return {
-          success: true,
-          hash,
-          retryCount
-        };
+        this.emit(NFTManagerEvent.UPDATE_COMPLETED, { analysisId, metadata, hash, retryCount });
+        return { success: true, hash };
       } catch (error) {
         this.emit(NFTManagerEvent.UPDATE_FAILED, { analysisId, metadata, error, retryCount });
         throw error;
@@ -266,8 +275,7 @@ export class NFTManager extends EventEmitter {
     this.pendingOperations.set(operationKey, operation);
     
     try {
-      const result = await operation;
-      return result;
+      return await operation;
     } finally {
       this.pendingOperations.delete(operationKey);
     }
