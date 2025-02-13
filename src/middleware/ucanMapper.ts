@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import axios from 'axios';
 import { build, EdKeypair, Capability, Ability } from '@ucans/ucans';
+import * as crypto from 'crypto';
 
 interface IntrospectionResponse {
     active: boolean;
@@ -41,6 +42,18 @@ function mapSMARTScopeToUCAN(scope: string, context: { patient?: string; fhirUse
     });
 }
 
+// Helper function to derive DID from userId
+const deriveUserDID = async (userId: string): Promise<string> => {
+    // Create a deterministic hash from userId and secret
+    const userKey = await crypto.subtle.digest(
+        'SHA-256',
+        new TextEncoder().encode(`${userId}${process.env.KEYPAIR_SECRET}`)
+    );
+    // Convert the hash to a base58 string to use as the DID
+    const didKey = `did:key:${Buffer.from(userKey).toString('base64')}`;
+    return didKey;
+};
+
 export const ucanMapper = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const authHeader = req.headers.authorization;
@@ -49,13 +62,18 @@ export const ucanMapper = async (req: Request, res: Response, next: NextFunction
             return res.status(401).json({ error: 'No Bearer token provided' });
         }
 
-        const clientId = authHeader.split(' ')[1];
-        const token = authHeader.split(' ')[2];
+        const userId = req.query.userId as string;
+        
+        if (!userId) {
+            return res.status(400).json({ error: 'UserId is required' });
+        }
+
+        const token = authHeader.split(' ')[1];
         
         // Call the Meldrx introspection endpoint
         const introspectionResponse = await axios.post(
             'https://app.meldrx.com/connect/introspect',
-            { token, client_id: clientId },
+            { token, client_id: '6c2d96cf430242a39a55c55e5f355164' },
             {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
@@ -101,19 +119,22 @@ export const ucanMapper = async (req: Request, res: Response, next: NextFunction
             throw new Error('KEYPAIR_SECRET environment variable not set');
         }
 
-        // Generate keypair from the secret
-        const keypair = await EdKeypair.create()
+        // Generate keypair for issuer
+        const issuerKeypair = await EdKeypair.create();
         
+        // Derive the user's DID from their userId
+        const audienceDID = await deriveUserDID(userId);
 
         // Build the UCAN token using the @ucans/ucans build function
         const ucan = await build({
-            issuer: keypair,
-            audience: keypair.did(),
+            issuer: issuerKeypair,
+            audience: audienceDID,
             capabilities: ucanCapabilitiesForToken,
             expiration: introspectionData.exp,
             facts: [{
                 client_id: introspectionData.client_id,
-                fhir_user: introspectionData.fhirUser
+                fhir_user: introspectionData.fhirUser,
+                user_id: userId
             }]
         });
 

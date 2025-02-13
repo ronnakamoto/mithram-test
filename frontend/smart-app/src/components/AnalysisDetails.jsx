@@ -156,9 +156,9 @@ function AnalysisDetails() {
 
         // Fetch analysis data from our backend API
         try {
-          const response = await fetch(apiConfig.endpoints.patient.metadata(parsedUser.patient), {
+          const response = await fetch(apiConfig.endpoints.patient.metadata(parsedUser.patient, parsedUser.profile.sub), {
             headers: {
-              'Authorization': `Bearer ${parsedUser.profile.aud} ${parsedUser.accessToken}`,
+              'Authorization': `Bearer ${parsedUser.accessToken}`,
               'Content-Type': 'application/json'
             }
           });
