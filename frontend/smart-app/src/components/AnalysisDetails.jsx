@@ -61,7 +61,7 @@ const AnalysisCard = ({ analysis }) => {
   if (!analysis) return null;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-8">
+    <div className="bg-white rounded-2xl p-4">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-medium text-gray-900">Analysis Results</h2>
         <div className="flex items-center space-x-2">
@@ -259,43 +259,54 @@ function AnalysisDetails({ id, setIsAuthenticated }) {
 
   return (
     <div className="min-h-screen w-full bg-gray-50 pt-20">
-      <div className="container mx-auto px-6 py-12">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-medium text-gray-900">Patient Analysis</h1>
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setShowHistory(true)}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-full text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer space-x-2"
-              >
-                <ClockIcon className="h-4 w-4" />
-                <span>View Analysis History</span>
-              </button>
-              <button
-                onClick={handleDeepAnalysis}
-                disabled={isAnalyzing}
-                className={`inline-flex items-center px-4 py-2 border border-transparent rounded-full text-sm font-medium text-white space-x-2 ${
-                  isAnalyzing ? 'bg-gray-400 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 cursor-pointer'
-                }`}
-              >
-                {isAnalyzing ? (
-                  <>
-                    <ArrowPathIcon className="h-4 w-4 animate-spin" />
-                    <span>Analyzing...</span>
-                  </>
-                ) : (
-                  <>
-                    <SparklesIcon className="h-4 w-4" />
-                    <span>Create Deep Analysis</span>
-                  </>
-                )}
-              </button>
+      <div className="container mx-auto px-6 py-8 pt-20">
+        <div className="mb-8">
+          <h1 className="text-3xl font-semibold text-gray-900">Patient Analysis</h1>
+          <div className="mt-6 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <h2 className="text-sm font-medium text-gray-700">Analysis Actions</h2>
+                <p className="text-sm text-gray-500">View history or create new analysis</p>
+              </div>
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={() => setShowHistory(true)}
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-full text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer space-x-2"
+                >
+                  <ClockIcon className="h-4 w-4" />
+                  <span>View Analysis History</span>
+                </button>
+                <button
+                  onClick={handleDeepAnalysis}
+                  disabled={isAnalyzing}
+                  className={`inline-flex items-center px-4 py-2 border border-transparent rounded-full text-sm font-medium text-white space-x-2 ${
+                    isAnalyzing ? 'bg-gray-400 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 cursor-pointer'
+                  }`}
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <ArrowPathIcon className="h-4 w-4 animate-spin" />
+                      <span>Analyzing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <SparklesIcon className="h-4 w-4" />
+                      <span>Create Deep Analysis</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
-          
+        </div>
+
+        <div className="mb-8">
           <PatientCard patient={patientData} />
-          {analysisData && (
-            <>
+        </div>
+
+        {analysisData && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+            <div className="p-6">
               <AnalysisCard analysis={analysisData} />
               {showHistory && (
                 <div className="fixed inset-0 bg-black bg-opacity-25 backdrop-blur-sm flex items-center justify-center z-50">
@@ -315,9 +326,9 @@ function AnalysisDetails({ id, setIsAuthenticated }) {
                   </div>
                 </div>
               )}
-            </>
-          )}
-        </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
