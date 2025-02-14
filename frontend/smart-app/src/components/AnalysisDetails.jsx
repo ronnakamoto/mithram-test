@@ -115,8 +115,8 @@ const AnalysisCard = ({ analysis }) => {
   );
 };
 
-function AnalysisDetails() {
-  const { id } = useParams()
+function AnalysisDetails({ id, setIsAuthenticated }) {
+  const {  } = useParams()
   const [, setLocation] = useLocation()
   const [userData, setUserData] = useState(null)
   const [patientData, setPatientData] = useState(null)
@@ -165,6 +165,7 @@ function AnalysisDetails() {
         // Check if the token is expired
         if (parsedUser.expiresAt * 1000 <= Date.now()) {
           localStorage.removeItem('mithram_user')
+          setIsAuthenticated(false)
           throw new Error('Session expired. Please authenticate again.')
         }
 
@@ -211,12 +212,7 @@ function AnalysisDetails() {
     }
 
     loadUserData()
-  }, [id])
-
-  const handleLogout = () => {
-    localStorage.removeItem('mithram_user')
-    setLocation('/launch')
-  }
+  }, [id, setIsAuthenticated])
 
   if (error) {
     return (
@@ -274,12 +270,6 @@ function AnalysisDetails() {
                 }`}
               >
                 {isAnalyzing ? 'Analyzing...' : 'Create Deep Analysis'}
-              </button>
-              <button
-                onClick={handleLogout}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-full text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                Logout
               </button>
             </div>
           </div>
