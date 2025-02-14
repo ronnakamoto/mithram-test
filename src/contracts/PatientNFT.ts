@@ -478,6 +478,7 @@ export class PatientNFTClient {
         return response.data as NFTMetadata;
       }
     } catch (error: any) {
+      console.error('Error fetching metadata:', error);
       // Check if it's a contract revert error for patient not found
       if (error.message?.includes('Patient not found')) {
         throw new NFTError('Patient not found', 'PATIENT_NOT_FOUND');
