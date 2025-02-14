@@ -2,6 +2,7 @@ import { useParams, useLocation } from 'wouter'
 import { useEffect, useState } from 'react'
 import Client from 'fhir-kit-client'
 import apiConfig from '../config/api'
+import AnalysisHistory from './AnalysisHistory'
 
 const PatientCard = ({ patient }) => {
   if (!patient) return null;
@@ -121,6 +122,7 @@ function AnalysisDetails() {
   const [patientData, setPatientData] = useState(null)
   const [analysisData, setAnalysisData] = useState(null)
   const [error, setError] = useState(null)
+  const [showHistory, setShowHistory] = useState(false)
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -171,7 +173,8 @@ function AnalysisDetails() {
             throw new Error(`Failed to fetch analysis: ${response.statusText}`)
           }
           const metadata = await response.json()
-          setAnalysisData(metadata.analysis)
+
+          setAnalysisData({ ...metadata.analysis, analysisId: metadata.analysisId })
         } catch (error) {
           console.error('Error fetching analysis:', error)
           setError('Failed to fetch analysis data. Please try again later.')
@@ -231,16 +234,51 @@ function AnalysisDetails() {
         <div className="max-w-4xl mx-auto">
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-3xl font-medium text-gray-900">Patient Analysis</h1>
-            <button
-              onClick={handleLogout}
-              className="bg-gray-100 text-gray-700 px-4 py-2 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors"
-            >
-              Logout
-            </button>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setShowHistory(true)}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-full text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors cursor-pointer"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"/>
+                </svg>
+                View Analysis History
+              </button>
+              <button
+                onClick={handleLogout}
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-full text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors cursor-pointer"
+              >
+                Logout
+              </button>
+            </div>
           </div>
           
           <PatientCard patient={patientData} />
-          <AnalysisCard analysis={analysisData} />
+          {analysisData && (
+            <>
+              <AnalysisCard analysis={analysisData} />
+              {showHistory && (
+                <div className="fixed inset-0 bg-black bg-opacity-25 backdrop-blur-sm flex items-center justify-center z-50">
+                  <div className="relative w-full max-w-4xl max-h-[90vh] bg-white rounded-2xl shadow-xl overflow-hidden transform transition-all">
+                    <div className="absolute top-0 left-0 right-0 h-14 bg-white border-b border-gray-100 flex items-center justify-between px-6">
+                      <h2 className="text-lg font-medium text-gray-900">Analysis History</h2>
+                      <button
+                        onClick={() => setShowHistory(false)}
+                        className="rounded-full p-2 hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    </div>
+                    <div className="p-6 pt-20 overflow-y-auto max-h-[90vh]">
+                      <AnalysisHistory analysisId={analysisData.analysisId} />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
     </div>

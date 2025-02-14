@@ -554,6 +554,43 @@ export class PatientNFTClient {
     }
   }
 
+  async getMetadataFromFilebase(objectKey: string): Promise<NFTMetadata> {
+    try {
+      console.log('Fetching metadata from Filebase:', objectKey);
+      const filebaseAccessKeyId = process.env.FILEBASE_ACCESS_KEY;
+      const filebaseSecretAccessKey = process.env.FILEBASE_SECRET_KEY;
+      const filebaseBucketName = process.env.FILEBASE_BUCKET_NAME || 'mithram';
+      const filebaseEndpoint = 'https://s3.filebase.com';
+
+      if (!filebaseAccessKeyId || !filebaseSecretAccessKey) {
+        throw new NFTError('Filebase credentials not found in environment variables', 'CONFIGURATION_ERROR');
+      }
+
+      // Create S3 client for Filebase
+      const s3Client = new S3Client({
+        endpoint: filebaseEndpoint,
+        region: 'us-east-1',
+        credentials: {
+          accessKeyId: filebaseAccessKeyId,
+          secretAccessKey: filebaseSecretAccessKey,
+        },
+      });
+
+      // Get the object from Filebase
+      const command = new GetObjectCommand({
+        Bucket: filebaseBucketName,
+        Key: objectKey,
+      });
+
+      const response = await s3Client.send(command);
+      const bodyContents = await this.streamToString(response.Body);
+      return JSON.parse(bodyContents);
+    } catch (error) {
+      console.error('Error fetching from Filebase:', error);
+      throw new NFTError(`Failed to fetch metadata from Filebase: ${error.message}`, 'STORAGE_ERROR');
+    }
+  }
+
   private async streamToString(stream: any): Promise<string> {
     return new Promise((resolve, reject) => {
       const chunks: any[] = [];

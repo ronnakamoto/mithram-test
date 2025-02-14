@@ -321,17 +321,27 @@ export class NFTManager extends EventEmitter {
 
   /**
    * Get metadata for a patient by their ID
+   * @param patientId Patient ID to get metadata for
    */
-  async getMetadataByPatientId(patientId: string): Promise<NFTMetadata> {
+  async getMetadataByPatientId(patientId: string): Promise<NFTMetadata | null> {
     try {
       return await this.client.getMetadataByPatientId(patientId);
-    } catch (error: any) {
-      // Re-throw NFTError instances directly
-      if (error instanceof NFTError) {
-        throw error;
-      }
-      // Wrap other errors
-      throw new NFTError(`Failed to fetch metadata for patient ${patientId}: ${error.message}`, 'METADATA_FETCH_ERROR');
+    } catch (error) {
+      console.error('Error getting metadata by patient ID:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get metadata directly from Filebase storage
+   * @param objectKey The object key in Filebase (e.g., 'metadata/uuid.json')
+   */
+  async getMetadataFromFilebase(objectKey: string): Promise<NFTMetadata | null> {
+    try {
+      return await this.client.getMetadataFromFilebase(objectKey);
+    } catch (error) {
+      console.error('Error getting metadata from Filebase:', error);
+      return null;
     }
   }
 

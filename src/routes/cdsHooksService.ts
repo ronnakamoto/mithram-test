@@ -10,6 +10,7 @@ import { Specialist } from '../services/OpenAIService';
 import type { Chain } from 'viem/chains';
 import { ucanMapper } from '../middleware/ucanMapper'; 
 import authMiddleware from '../middleware/authMiddleware';
+import { AnalysisHistoryManager } from '../utils/analysisHistory';
 
 const router = express.Router();
 
@@ -35,6 +36,8 @@ const nftManager = new NFTManager({
 });
 
 const fhirClient = new FHIRClient(config.fhir);
+
+const historyManager = new AnalysisHistoryManager(nftManager);
 
 // CDS Services Discovery Endpoint
 router.get('/cds-services', (req: Request, res: Response) => {
@@ -212,6 +215,39 @@ router.get('/analysis/:analysisId', authMiddleware, async (req: Request, res: Re
             error: 'Failed to fetch analysis metadata',
             message: error.message,
             code: error.code || 'INTERNAL_ERROR'
+        });
+    }
+});
+
+// Get analysis history
+router.get('/analysis/:analysisId/history', async (req: Request, res: Response) => {
+    try {
+        const { analysisId } = req.params;
+        const { maxDepth } = req.query;
+
+        // Validate maxDepth if provided
+        const parsedMaxDepth = maxDepth ? parseInt(maxDepth as string) : undefined;
+        if (maxDepth && (isNaN(parsedMaxDepth!) || parsedMaxDepth! < 1)) {
+            return res.status(400).json({
+                error: 'Invalid maxDepth parameter. Must be a positive integer.'
+            });
+        }
+
+        // Get analysis history
+        const history = await historyManager.getAnalysisHistory(analysisId, parsedMaxDepth);
+
+        // Return the history with additional metadata
+        res.json({
+            analysisId,
+            totalItems: history.length,
+            maxDepth: parsedMaxDepth,
+            items: history
+        });
+    } catch (error) {
+        console.error('Error fetching analysis history:', error);
+        res.status(500).json({
+            error: 'Failed to fetch analysis history',
+            details: error instanceof Error ? error.message : 'Unknown error'
         });
     }
 });
