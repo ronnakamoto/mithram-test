@@ -141,115 +141,49 @@ const DeepAnalysisModal = ({ isOpen, setIsOpen, analysis }) => {
               <div className="space-y-6 mb-6">
                 <h4 className="text-lg font-medium text-gray-900">Recommendations</h4>
                 <div className="grid gap-4">
-                  {/* Specialty Management */}
+                  {/* Primary Care Cards */}
                   <div className="grid gap-4 md:grid-cols-2">
-                    {recommendations.renalManagement && (
+                    {recommendations.specialistReferrals?.length > 0 && (
                       <RecommendationCard
-                        title="Renal Management"
-                        specialty={recommendations.renalManagement.specialtyReferral}
-                        priority={recommendations.renalManagement.priority}
-                        actions={recommendations.renalManagement.actions}
+                        title="Specialist Care"
+                        specialty="Multiple Specialists"
+                        priority="High"
+                        actions={recommendations.specialistReferrals}
                         variant="red"
                       />
                     )}
-                    {recommendations.thyroidManagement && (
+                    {recommendations.preventiveHealthFocus?.length > 0 && (
                       <RecommendationCard
-                        title="Thyroid Management"
-                        specialty={recommendations.thyroidManagement.specialtyReferral}
-                        priority={recommendations.thyroidManagement.priority}
-                        actions={recommendations.thyroidManagement.actions}
-                        variant="blue"
-                      />
-                    )}
-                    {recommendations.hypertensionManagement && (
-                      <RecommendationCard
-                        title="Hypertension Management"
-                        specialty={recommendations.hypertensionManagement.specialtyReferral}
-                        priority={recommendations.hypertensionManagement.priority}
-                        actions={recommendations.hypertensionManagement.actions}
-                        variant="purple"
+                        title="Preventive Care"
+                        specialty="Primary Care"
+                        priority="Ongoing"
+                        actions={recommendations.preventiveHealthFocus}
+                        variant="green"
                       />
                     )}
                   </div>
 
-                  {/* Lifestyle Modification */}
-                  {recommendations.lifestyleModification && (
-                    <div className="bg-white rounded-xl border border-gray-200 p-4">
-                      <h5 className="font-medium text-gray-900 mb-4">Lifestyle Modification</h5>
-                      <div className="grid gap-4 md:grid-cols-3">
-                        {/* Exercise */}
-                        <div className="space-y-2">
-                          <h6 className="text-sm font-medium text-gray-700">Exercise</h6>
-                          <p className="text-sm text-gray-600">{recommendations.lifestyleModification.exercise.frequency}</p>
-                          <ul className="space-y-1">
-                            {recommendations.lifestyleModification.exercise.types.map((type, index) => (
-                              <li key={index} className="text-sm text-gray-600 flex items-center">
-                                <span className="mr-2 text-green-500">•</span>
-                                {type}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-
-                        {/* Nutrition */}
-                        <div className="space-y-2">
-                          <h6 className="text-sm font-medium text-gray-700">Nutrition</h6>
-                          <p className="text-sm text-gray-600">{recommendations.lifestyleModification.nutrition.balancedDiet}</p>
-                          <p className="text-sm text-gray-600">{recommendations.lifestyleModification.nutrition.limit}</p>
-                        </div>
-
-                        {/* Stress Management */}
-                        <div className="space-y-2">
-                          <h6 className="text-sm font-medium text-gray-700">Stress Management</h6>
-                          <ul className="space-y-1">
-                            {recommendations.lifestyleModification.stressManagement.strategies.map((strategy, index) => (
-                              <li key={index} className="text-sm text-gray-600 flex items-center">
-                                <span className="mr-2 text-blue-500">•</span>
-                                {strategy}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Monitoring */}
-                  {recommendations.monitoring && (
-                    <div className="bg-white rounded-xl border border-gray-200 p-4">
-                      <div className="flex items-center gap-2 mb-4">
-                        <ClockIcon className="h-5 w-5 text-blue-600" />
-                        <h5 className="font-medium text-gray-900">Monitoring Schedule</h5>
-                      </div>
-                      <div className="grid gap-6 md:grid-cols-2">
-                        {/* Routine Tests */}
-                        <div>
-                          <h6 className="text-sm font-medium text-gray-700 mb-2">Routine Tests</h6>
-                          <ul className="space-y-1">
-                            {recommendations.monitoring.routineTests.map((test, index) => (
-                              <li key={index} className="text-sm text-gray-600 flex items-center">
-                                <span className="mr-2 text-purple-500">•</span>
-                                {test}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-
-                        {/* Follow-up Appointments */}
-                        <div>
-                          <h6 className="text-sm font-medium text-gray-700 mb-2">Follow-up Schedule</h6>
-                          <div className="space-y-2">
-                            {Object.entries(recommendations.monitoring.followUpAppointments).map(([specialty, interval]) => (
-                              <div key={specialty} className="flex items-center justify-between text-sm">
-                                <span className="text-gray-600 capitalize">{specialty}:</span>
-                                <Badge variant="blue">{interval}</Badge>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  {/* Patient Care and Coordination */}
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {recommendations.patientEngagement?.length > 0 && (
+                      <RecommendationCard
+                        title="Patient Engagement"
+                        specialty="Patient Education"
+                        priority="Essential"
+                        actions={recommendations.patientEngagement}
+                        variant="blue"
+                      />
+                    )}
+                    {recommendations.interdisciplinaryCoordination?.length > 0 && (
+                      <RecommendationCard
+                        title="Care Coordination"
+                        specialty="Multi-disciplinary"
+                        priority="Ongoing"
+                        actions={recommendations.interdisciplinaryCoordination}
+                        variant="purple"
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
             )}
