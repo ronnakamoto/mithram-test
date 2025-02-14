@@ -102,19 +102,81 @@ describe("PatientNFT", function () {
       const analysisId = "analysis123";
       const uri = "ipfs://test";
       const metadataHash = "0x0000000000000000000000000000000000000000000000000000000000000000";
+      const userAddress = await user.account.address;
+
       const tx = await patientNFT.write.safeMint(
-        [await user.account.address, patientId, analysisId, uri, metadataHash],
+        [userAddress, patientId, analysisId, uri, metadataHash],
         { account: await minter.account.address }
       );
       await publicClient.waitForTransactionReceipt({ hash: tx });
+    });
+
+    it("Should allow updater to update metadata with new analysis ID", async function () {
+      const newUri = "ipfs://updated";
+      const newMetadataHash = "0x1111111111111111111111111111111111111111111111111111111111111111";
+      const newAnalysisId = "analysis456";
+
+      const tx = await patientNFT.write.updateMetadata(
+        [0n, newUri, newMetadataHash, newAnalysisId],
+        { account: await updater.account.address }
+      );
+      await publicClient.waitForTransactionReceipt({ hash: tx });
+
+      const tokenURI = await patientNFT.read.tokenURI([0n]);
+      expect(tokenURI).to.equal(newUri);
+      
+      // Verify that the new analysis ID is linked to the token
+      const tokenId = await patientNFT.read.getTokenByAnalysis([newAnalysisId]);
+      expect(tokenId).to.equal(0n);
+    });
+
+    it("Should prevent duplicate analysis IDs during update", async function () {
+      // First, create another token with a different analysis ID
+      const patientId2 = "patient456";
+      const analysisId2 = "analysis456";
+      const uri = "ipfs://test2";
+      const metadataHash = "0x0000000000000000000000000000000000000000000000000000000000000000";
+      const userAddress = await user.account.address;
+
+      const tx1 = await patientNFT.write.safeMint(
+        [userAddress, patientId2, analysisId2, uri, metadataHash],
+        { account: await minter.account.address }
+      );
+      await publicClient.waitForTransactionReceipt({ hash: tx1 });
+
+      // Try to update first token with the second token's analysis ID
+      const newUri = "ipfs://updated";
+      const newMetadataHash = "0x1111111111111111111111111111111111111111111111111111111111111111";
+
+      await expect(
+        patientNFT.write.updateMetadata(
+          [0n, newUri, newMetadataHash, analysisId2],
+          { account: await updater.account.address }
+        )
+      ).to.be.rejected;
+    });
+
+    it("Should prevent empty analysis ID during update", async function () {
+      const newUri = "ipfs://updated";
+      const newMetadataHash = "0x1111111111111111111111111111111111111111111111111111111111111111";
+      const emptyAnalysisId = "";
+
+      await expect(
+        patientNFT.write.updateMetadata(
+          [0n, newUri, newMetadataHash, emptyAnalysisId],
+          { account: await updater.account.address }
+        )
+      ).to.be.rejected;
     });
 
     it("Should allow updater to update metadata", async function () {
       const tokenId = 0n;
       const newUri = "ipfs://updated";
       const newHash = "0x1111111111111111111111111111111111111111111111111111111111111111";
+      const newAnalysisId = "analysis456";
+      
       const tx = await patientNFT.write.updateMetadata(
-        [tokenId, newUri, newHash],
+        [tokenId, newUri, newHash, newAnalysisId],
         { account: await updater.account.address }
       );
       await publicClient.waitForTransactionReceipt({ hash: tx });
@@ -123,15 +185,21 @@ describe("PatientNFT", function () {
       const updatedHash = await patientNFT.read.getMetadataHash([tokenId]);
       expect(updatedUri).to.equal(newUri);
       expect(updatedHash).to.equal(newHash);
+      
+      // Verify analysis ID mapping
+      const tokenIdByAnalysis = await patientNFT.read.getTokenByAnalysis([newAnalysisId]);
+      expect(tokenIdByAnalysis).to.equal(tokenId);
     });
 
     it("Should prevent non-updaters from updating metadata", async function () {
       const tokenId = 0n;
       const newUri = "ipfs://updated";
       const newHash = "0x1111111111111111111111111111111111111111111111111111111111111111";
+      const newAnalysisId = "analysis456";
+      
       await expect(
         patientNFT.write.updateMetadata(
-          [tokenId, newUri, newHash],
+          [tokenId, newUri, newHash, newAnalysisId],
           { account: await user.account.address }
         )
       ).to.be.rejected;

@@ -170,13 +170,48 @@ router.get('/patient/:patientId/metadata', authMiddleware, async (req: Request, 
         
         if (error.code === 'PATIENT_NOT_FOUND') {
             return res.status(404).json({ 
-                error: 'Patient not found' 
+                error: 'Patient not found',
+                message: 'No NFT analysis exists for this patient. Please initiate a new analysis.',
+                code: 'PATIENT_NOT_FOUND'
             });
         }
         
         res.status(500).json({ 
             error: 'Failed to fetch patient metadata',
-            details: error.message 
+            message: error.message,
+            code: error.code || 'INTERNAL_ERROR'
+        });
+    }
+});
+
+// Analysis metadata endpoint
+router.get('/analysis/:analysisId', authMiddleware, async (req: Request, res: Response) => {
+    try {
+        const analysisId = req.params.analysisId;
+        
+        if (!analysisId) {
+            return res.status(400).json({ 
+                error: 'Missing analysisId parameter' 
+            });
+        }
+
+        const metadata = await nftManager.getMetadata(analysisId);
+        res.json(metadata);
+    } catch (error: any) {
+        console.error('Error fetching analysis metadata:', error);
+        
+        if (error.code === 'NFT_NOT_FOUND') {
+            return res.status(404).json({ 
+                error: 'Analysis not found',
+                message: 'The requested analysis does not exist.',
+                code: 'ANALYSIS_NOT_FOUND'
+            });
+        }
+        
+        res.status(500).json({ 
+            error: 'Failed to fetch analysis metadata',
+            message: error.message,
+            code: error.code || 'INTERNAL_ERROR'
         });
     }
 });
@@ -383,10 +418,7 @@ function generateResponseCards(taskId: string, context: any): Card[] {
     cards.push({
         summary: 'AI Expert Panel Analysis Initiated',
         indicator: 'info',
-        detail: `Analysis has been started for this patient. Click "View Analysis" to see real-time results and recommendations.
-
-Current Status: In Progress
-Analysis ID: ${taskId}`,
+        detail: `An automated clinical analysis(Analysis ID: ${taskId}) has been initiated for this patient using advanced AI algorithms. The analysis will evaluate the patient's clinical context and provide evidence-based recommendations. Click "View Analysis" to monitor progress and view recommendations in real-time. Analysis results are typically available within 2-3 minutes.`,
         source: getSourceInfo(),
         links: [{
             label: 'View Analysis',

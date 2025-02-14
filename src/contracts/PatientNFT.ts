@@ -50,6 +50,7 @@ export interface NFTMetadata {
   analysisId: string;
   analysis: AnalysisData;
   timestamp: string;
+  previousAnalysis: string | null; // Unique identifier of the previous metadata file, or null if this is the first analysis
 }
 
 // Contract ABI
@@ -129,6 +130,7 @@ export const PATIENT_NFT_ABI = [
       { name: 'tokenId', type: 'uint256' },
       { name: 'uri', type: 'string' },
       { name: 'metadataHash', type: 'bytes32' },
+      { name: 'analysisId', type: 'string' }
     ],
     name: 'updateMetadata',
     outputs: [],
@@ -302,12 +304,12 @@ export class PatientNFTClient {
 
   async updateMetadata(analysisId: string, metadata: NFTMetadata): Promise<Hash> {
     try {
-      // Get token ID from contract using analysis ID
+      // Get token ID using patient ID since the analysis ID won't exist yet
       const tokenId = await this.publicClient.readContract({
         address: this.config.contractAddress,
         abi: PATIENT_NFT_ABI,
-        functionName: 'getTokenByAnalysis',
-        args: [analysisId]
+        functionName: 'getTokenByPatient',
+        args: [metadata.patientId]
       });
 
       const tokenURI = await this.storeMetadata(metadata);
@@ -320,7 +322,7 @@ export class PatientNFTClient {
         address: this.config.contractAddress,
         abi: PATIENT_NFT_ABI,
         functionName: 'updateMetadata',
-        args: [tokenId, tokenURI, metadataHash],
+        args: [tokenId, tokenURI, metadataHash, metadata.analysisId],
         account: this.account
       });
 
@@ -353,8 +355,6 @@ export class PatientNFTClient {
         args: [tokenId]
       });
 
-      console.log('Token URI:', tokenURI);
-
       // Parse metadata from URI
       if (this.config.storage === 'datauri') {
         const base64Data = tokenURI.split(',')[1];
@@ -371,8 +371,14 @@ export class PatientNFTClient {
             throw new NFTError('Filebase credentials not found in environment variables', 'CONFIGURATION_ERROR');
           }
 
-          // Extract object key from the tokenURI
-          const objectKey = new URL(tokenURI).pathname.slice(1); // Remove leading slash
+          // If we're getting a previous version, construct the full object key
+          let objectKey: string;
+          if (tokenURI.includes('/metadata/')) {
+            objectKey = new URL(tokenURI).pathname.slice(1); // Current version
+          } else {
+            // Previous version - construct the full path
+            objectKey = `metadata/${tokenURI}.json`;
+          }
 
           // Create S3 client for Filebase
           const s3Client = new S3Client({
@@ -391,33 +397,20 @@ export class PatientNFTClient {
           });
 
           const response = await s3Client.send(command);
-          
-          // Convert the response stream to string
-          const streamToString = (stream: any): Promise<string> =>
-            new Promise((resolve, reject) => {
-              const chunks: any[] = [];
-              stream.on('data', (chunk: any) => chunks.push(chunk));
-              stream.on('error', reject);
-              stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
-            });
-
-          const bodyContents = await streamToString(response.Body);
+          const bodyContents = await this.streamToString(response.Body);
           return JSON.parse(bodyContents);
-        } catch (error: any) {
-          console.error('Error fetching metadata from Filebase:', error);
-          throw new NFTError(
-            `Failed to fetch metadata from Filebase: ${error.message}`,
-            'FILEBASE_FETCH_ERROR'
-          );
+        } catch (error) {
+          console.error('Error fetching from Filebase:', error);
+          throw new NFTError(`Failed to fetch metadata from Filebase: ${error.message}`, 'STORAGE_ERROR');
         }
-      } else {
-        throw new NFTError(`Storage type '${this.config.storage}' is not supported`, 'UNSUPPORTED_STORAGE');
       }
+
+      throw new NFTError('Unsupported storage type', 'CONFIGURATION_ERROR');
     } catch (error) {
       console.error('Error getting metadata:', error);
       throw error instanceof NFTError ? error : new NFTError(
         'Failed to get metadata',
-        'GET_METADATA_ERROR'
+        'METADATA_ERROR'
       );
     }
   }
@@ -493,6 +486,32 @@ export class PatientNFTClient {
         throw error;
       }
       throw new NFTError(`Failed to fetch metadata for patient ${patientId}: ${error.message}`, 'METADATA_FETCH_ERROR');
+    }
+  }
+
+  async getTokenURI(analysisId: string): Promise<string> {
+    try {
+      // Get token ID from contract using analysis ID
+      const tokenId = await this.publicClient.readContract({
+        address: this.config.contractAddress,
+        abi: PATIENT_NFT_ABI,
+        functionName: 'getTokenByAnalysis',
+        args: [analysisId]
+      });
+
+      // Get token URI
+      return await this.publicClient.readContract({
+        address: this.config.contractAddress,
+        abi: PATIENT_NFT_ABI,
+        functionName: 'tokenURI',
+        args: [tokenId]
+      });
+    } catch (error) {
+      console.error('Error getting token URI:', error);
+      throw error instanceof NFTError ? error : new NFTError(
+        'Failed to get token URI',
+        'URI_ERROR'
+      );
     }
   }
 
