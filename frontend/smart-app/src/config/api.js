@@ -8,7 +8,8 @@ export const config = {
       metadata: (patientId, userId) => `${API_URL}/patient/${patientId}/metadata?userId=${userId}`
     },
     analysis: {
-      history: (analysisId) => `${API_URL}/analysis/${analysisId}/history`
+      history: (analysisId) => `${API_URL}/analysis/${analysisId}/history`,
+      deepAnalysis: (analysisId) => `${API_URL}/analysis/${analysisId}/deep-analysis`
     }
   }
 }

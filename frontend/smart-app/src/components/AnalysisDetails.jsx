@@ -123,6 +123,31 @@ function AnalysisDetails() {
   const [analysisData, setAnalysisData] = useState(null)
   const [error, setError] = useState(null)
   const [showHistory, setShowHistory] = useState(false)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+
+  const handleDeepAnalysis = async () => {
+    try {
+      setIsAnalyzing(true);
+      const response = await fetch(apiConfig.endpoints.analysis.deepAnalysis(analysisData.analysisId), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to perform deep analysis');
+      }
+      
+      const data = await response.json();
+      console.log('Deep Analysis Results:', data);
+      
+    } catch (error) {
+      console.error('Error performing deep analysis:', error);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -237,16 +262,22 @@ function AnalysisDetails() {
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => setShowHistory(true)}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-full text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors cursor-pointer"
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-full text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"/>
-                </svg>
                 View Analysis History
               </button>
               <button
+                onClick={handleDeepAnalysis}
+                disabled={isAnalyzing}
+                className={`inline-flex items-center px-4 py-2 border border-transparent rounded-full text-sm font-medium text-white ${
+                  isAnalyzing ? 'bg-gray-400 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500'
+                }`}
+              >
+                {isAnalyzing ? 'Analyzing...' : 'Create Deep Analysis'}
+              </button>
+              <button
                 onClick={handleLogout}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-full text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors cursor-pointer"
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-full text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 Logout
               </button>
