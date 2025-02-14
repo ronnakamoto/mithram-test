@@ -2,6 +2,7 @@ import { useParams, useLocation } from 'wouter'
 import { useEffect, useState } from 'react'
 import Client from 'fhir-kit-client'
 import apiConfig from '../config/api'
+import AnalysisHistory from './AnalysisHistory'
 
 const PatientCard = ({ patient }) => {
   if (!patient) return null;
@@ -171,7 +172,8 @@ function AnalysisDetails() {
             throw new Error(`Failed to fetch analysis: ${response.statusText}`)
           }
           const metadata = await response.json()
-          setAnalysisData(metadata.analysis)
+
+          setAnalysisData({ ...metadata.analysis, analysisId: metadata.analysisId })
         } catch (error) {
           console.error('Error fetching analysis:', error)
           setError('Failed to fetch analysis data. Please try again later.')
@@ -240,7 +242,14 @@ function AnalysisDetails() {
           </div>
           
           <PatientCard patient={patientData} />
-          <AnalysisCard analysis={analysisData} />
+          {analysisData && (
+            <>
+              <AnalysisCard analysis={analysisData} />
+              <div className="mt-8">
+                <AnalysisHistory analysisId={analysisData.analysisId} />
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
