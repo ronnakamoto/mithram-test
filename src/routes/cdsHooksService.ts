@@ -11,6 +11,7 @@ import type { Chain } from 'viem/chains';
 import { ucanMapper } from '../middleware/ucanMapper'; 
 import authMiddleware from '../middleware/authMiddleware';
 import { AnalysisHistoryManager } from '../utils/analysisHistory';
+import { GenesisService } from '../services/Genesis';
 
 const router = express.Router();
 
@@ -38,6 +39,9 @@ const nftManager = new NFTManager({
 const fhirClient = new FHIRClient(config.fhir);
 
 const historyManager = new AnalysisHistoryManager(nftManager);
+
+// Initialize Genesis service
+const genesisService = new GenesisService(config.analysisQueue.openai.apiKey);
 
 // CDS Services Discovery Endpoint
 router.get('/cds-services', (req: Request, res: Response) => {
@@ -247,6 +251,59 @@ router.get('/analysis/:analysisId/history', async (req: Request, res: Response) 
         console.error('Error fetching analysis history:', error);
         res.status(500).json({
             error: 'Failed to fetch analysis history',
+            details: error instanceof Error ? error.message : 'Unknown error'
+        });
+    }
+});
+
+// Deep Analysis endpoint using GENESIS protocol
+router.post('/analysis/:analysisId/deep-analysis', async (req: Request, res: Response) => {
+    try {
+        const { analysisId } = req.params;
+        const { maxDepth } = req.query;
+
+        // Validate maxDepth if provided
+        const parsedMaxDepth = maxDepth ? parseInt(maxDepth as string) : 2; // Default to 2 for GENESIS protocol
+        if (isNaN(parsedMaxDepth) || parsedMaxDepth < 1) {
+            return res.status(400).json({
+                error: 'Invalid maxDepth parameter. Must be a positive integer.'
+            });
+        }
+
+        // Get analysis history
+        const history = await historyManager.getAnalysisHistory(analysisId, parsedMaxDepth);
+        
+        if (!history || history.length === 0) {
+            return res.status(404).json({
+                error: 'No analysis history found for the given analysisId'
+            });
+        }
+
+        // Map history to the format expected by GenesisService
+        const formattedHistory = history.map(item => ({
+            analysisId: item.analysisId,
+            timestamp: item.timestamp,
+            metadata: {
+                ...item.analysis,
+                clinicalContext: item.analysis.clinicalContext,
+                recommendations: item.analysis.recommendations,
+                status: item.analysis.status
+            }
+        }));
+
+        // Process the analysis using GENESIS protocol
+        const deepAnalysis = await genesisService.processAnalysisHistory(formattedHistory);
+
+        res.json({
+            analysisId,
+            timestamp: new Date().toISOString(),
+            deepAnalysis
+        });
+
+    } catch (error) {
+        console.error('Error in deep analysis:', error);
+        res.status(500).json({
+            error: 'Failed to perform deep analysis',
             details: error instanceof Error ? error.message : 'Unknown error'
         });
     }

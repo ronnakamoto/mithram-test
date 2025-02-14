@@ -1,35 +1,55 @@
-import { useState } from 'react'
-import { Route, Switch, Link } from 'wouter'
+import { useState, useEffect } from 'react'
+import { Route, Switch, useLocation } from 'wouter'
 import Home from './components/Home'
 import AnalysisDetails from './components/AnalysisDetails'
 import Launch from './components/Launch'
 import Callback from './components/Callback'
+import Header from './components/Header'
 
 function App() {
+  const [, setLocation] = useLocation();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    // Check authentication status
+    const storedUser = localStorage.getItem('mithram_user');
+    if (storedUser) {
+      const parsedUser = JSON.parse(storedUser);
+      setIsAuthenticated(parsedUser.expiresAt * 1000 > Date.now());
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('mithram_user');
+    localStorage.removeItem('launchParams');
+    setIsAuthenticated(false);
+    setLocation('/');
+  };
+
   return (
     <div className="min-h-screen w-full bg-white">
       {/* Navigation */}
-      <nav className="w-full bg-white/80 backdrop-blur-md fixed top-0 z-50 border-b border-gray-100">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex justify-between items-center">
-            <Link href="/">
-              <a className="text-xl font-medium tracking-tight text-gray-900">Mithram</a>
-            </Link>
-            <div className="flex space-x-8">
-              <a href="#features" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Features</a>
-              <a href="#docs" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Documentation</a>
-              <a href="https://github.com/ronnakamoto/mithram" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">GitHub</a>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Header isAuthenticated={isAuthenticated} onLogout={handleLogout} />
 
       {/* Routes */}
       <Switch>
         <Route path="/" component={Home} />
-        <Route path="/analysis/:id" component={AnalysisDetails} />
+        <Route path="/analysis/:id">
+          {(params) => (
+            <AnalysisDetails 
+              id={params.id} 
+              setIsAuthenticated={setIsAuthenticated}
+            />
+          )}
+        </Route>
         <Route path="/launch" component={Launch} />
-        <Route path="/callback" component={Callback} />
+        <Route path="/callback">
+          {() => (
+            <Callback 
+              setIsAuthenticated={setIsAuthenticated}
+            />
+          )}
+        </Route>
       </Switch>
 
       {/* Footer */}
