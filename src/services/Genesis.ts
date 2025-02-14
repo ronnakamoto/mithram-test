@@ -3,147 +3,195 @@ import { PromptTemplate } from '@langchain/core/prompts';
 import { JsonOutputParser } from '@langchain/core/output_parsers';
 import { RunnableSequence } from '@langchain/core/runnables';
 
+// --- INTERFACES (Slightly Refined) ---
+
 interface AnalysisHistory {
-  analysisId: string;
-  timestamp: string;
-  metadata: Record<string, any>;
+    analysisId: string;
+    timestamp: string;
+    metadata: Record<string, any>;
 }
 
 interface DynamicPrompt {
-  perspective: string;
-  instruction: string;
+    perspective: string;
+    instruction: string;
+}
+
+// More specific interfaces for the expected JSON structure
+interface PatientOverview {
+    age: number;
+    gender: string;
+    chronicConditions: string[];
+}
+
+interface Recommendations {
+    patientEngagement: string[];
+    interdisciplinaryCoordination: string[];
+    preventiveHealthFocus: string[];
+    specialistReferrals: string[];
 }
 
 interface SynthesizedAnalysis {
-  summary: string;
-  recommendations: string[];
-  riskFactors: string[];
+    summary: {
+        patientOverview: PatientOverview;
+        careApproach: string;
+    };
+    recommendations: Recommendations;
+    riskFactors: string[];
 }
-
+// --- END INTERFACES ---
 export class GenesisService {
-  private llm: ChatOpenAI;
-  private promptGeneratorTemplate: PromptTemplate;
-  private analysisTemplate: PromptTemplate;
-  private synthesisTemplate: PromptTemplate;
+    private llm: ChatOpenAI;
+    private promptGeneratorTemplate: PromptTemplate;
+    private analysisTemplate: PromptTemplate;
+    private synthesisTemplate: PromptTemplate;
 
-  constructor(apiKey: string) {
-    this.llm = new ChatOpenAI({
-      modelName: 'gpt-4o-mini',
-      temperature: 0.7,
-      openAIApiKey: apiKey,
-    });
+    constructor(apiKey: string) {
+        this.llm = new ChatOpenAI({
+            modelName: 'gpt-4o-mini', // Or any other consistent model
+            temperature: 0.0,   // Lower temperature for more deterministic output
+            openAIApiKey: apiKey,
+        });
 
-    // Template for generating dynamic prompts
-    this.promptGeneratorTemplate = PromptTemplate.fromTemplate(`
+        // --- PROMPT TEMPLATES (Revised with JSON Schema and Examples) ---
+
+        this.promptGeneratorTemplate = PromptTemplate.fromTemplate(`
       Given the following patient analysis history, generate an array of diverse prompt instructions.
       Each prompt should focus on a different perspective of patient care.
-      Format the output as a JSON array of objects with 'perspective' and 'instruction' fields.
-      
+
       Patient History:
       {history}
-      
+
       Generate 4 different perspectives for analysis.
+
+      Format the output as a JSON array of objects with the following structure:
+      \`\`\`json
+      [
+        {{
+          "perspective": "string (e.g., 'Cardiologist')",
+          "instruction": "string (Detailed instruction for the cardiologist)"
+        }},
+        ...
+      ]
+      \`\`\`
     `);
 
-    // Template for individual analysis
-    this.analysisTemplate = PromptTemplate.fromTemplate(`
+        this.analysisTemplate = PromptTemplate.fromTemplate(`
       Analyze the following patient history from this perspective: {perspective}
-      
+
       Patient History:
       {history}
-      
+
       Specific Instructions: {instruction}
-      
-      Provide a detailed analysis focusing on this perspective.
-    `);
 
-    // Template for final synthesis
-    this.synthesisTemplate = PromptTemplate.fromTemplate(`
+      Provide a detailed analysis focusing on this perspective.  Output should be a single paragraph.
+    `);
+        // Synthesis template
+        this.synthesisTemplate = PromptTemplate.fromTemplate(`
       Synthesize the following analyses into a comprehensive summary:
-      
+
       {analyses}
-      
       Provide a concise summary with key insights, recommendations, and risk factors.
-      Format the output as JSON with 'summary', 'recommendations', and 'riskFactors' fields.
+      Format the output as JSON with this exact structure:
+      \`\`\`json
+        {{
+            "summary": {{
+                "patientOverview": {{
+                    "age": number,
+                    "gender": string,
+                    "chronicConditions": ["condition1", "condition2", ...]
+                }},
+                "careApproach": "string"
+            }},
+            "recommendations": {{
+                "patientEngagement": ["instruction1", "instruction2", ...],
+                "interdisciplinaryCoordination": ["instruction1", "instruction2", ...],
+                "preventiveHealthFocus": ["instruction1", "instruction2", ...],
+                "specialistReferrals": ["instruction1", "instruction2", ...]
+            }},
+            "riskFactors": ["risk1", "risk2", ...]
+        }}
+      \`\`\`
     `);
-  }
-
-  async generateDynamicPrompts(history: string): Promise<DynamicPrompt[]> {
-    const promptChain = RunnableSequence.from([
-      this.promptGeneratorTemplate,
-      this.llm,
-      new JsonOutputParser<DynamicPrompt[]>(),
-    ]);
-
-    return await promptChain.invoke({ history });
-  }
-
-  async analyzeFromPerspective(
-    history: string,
-    perspective: string,
-    instruction: string
-  ): Promise<string> {
-    const analysisChain = RunnableSequence.from([
-      this.analysisTemplate,
-      this.llm,
-    ]);
-
-    const response = await analysisChain.invoke({
-      history,
-      perspective,
-      instruction,
-    });
-
-    // Handle both string and MessageContent[] types
-    if (typeof response.content === 'string') {
-      return response.content;
-    } else if (Array.isArray(response.content)) {
-      // Join all message content parts into a single string
-      return response.content.map(part => 
-        typeof part === 'string' ? part : JSON.stringify(part)
-      ).join(' ');
     }
-    return '';
-  }
 
-  async synthesizeAnalyses(analyses: string[]): Promise<SynthesizedAnalysis> {
-    const synthesisChain = RunnableSequence.from([
-      this.synthesisTemplate,
-      this.llm,
-      new JsonOutputParser<SynthesizedAnalysis>(),
-    ]);
+    // --- METHODS (No major changes, just using the refined interfaces) ---
 
-    return await synthesisChain.invoke({
-      analyses: analyses.join('\n\n'),
-    });
-  }
+    async generateDynamicPrompts(history: string): Promise<DynamicPrompt[]> {
+        const promptChain = RunnableSequence.from([
+            this.promptGeneratorTemplate,
+            this.llm,
+            new JsonOutputParser<DynamicPrompt[]>(),
+        ]);
 
-  async processAnalysisHistory(histories: AnalysisHistory[]): Promise<SynthesizedAnalysis> {
-    // Get the top 2 most recent analyses
-    const recentHistories = histories
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      .slice(0, 2);
+        return await promptChain.invoke({ history });
+    }
 
-    // Prepare history context
-    const historyContext = recentHistories
-      .map(h => `Analysis ID: ${h.analysisId}\nTimestamp: ${h.timestamp}\nMetadata: ${JSON.stringify(h.metadata)}`)
-      .join('\n\n');
+    async analyzeFromPerspective(
+        history: string,
+        perspective: string,
+        instruction: string
+    ): Promise<string> {
+        const analysisChain = RunnableSequence.from([
+            this.analysisTemplate,
+            this.llm,
+        ]);
 
-    // Generate dynamic prompts
-    const dynamicPrompts = await this.generateDynamicPrompts(historyContext);
+        const response = await analysisChain.invoke({
+            history,
+            perspective,
+            instruction,
+        });
 
-    // Run analyses in parallel
-    const analysisPromises = dynamicPrompts.map(prompt =>
-      this.analyzeFromPerspective(
-        historyContext,
-        prompt.perspective,
-        prompt.instruction
-      )
-    );
+        // Handle both string and MessageContent[] types
+        if (typeof response.content === 'string') {
+            return response.content;
+        } else if (Array.isArray(response.content)) {
+            // Join all message content parts into a single string
+            return response.content.map(part =>
+                typeof part === 'string' ? part : JSON.stringify(part)
+            ).join(' ');
+        }
+        return '';
+    }
 
-    const analyses = await Promise.all(analysisPromises);
+    async synthesizeAnalyses(analyses: string[]): Promise<SynthesizedAnalysis> {
+        const synthesisChain = RunnableSequence.from([
+            this.synthesisTemplate,
+            this.llm,
+            new JsonOutputParser<SynthesizedAnalysis>(),
+        ]);
 
-    // Synthesize all analyses
-    return await this.synthesizeAnalyses(analyses);
-  }
+        return await synthesisChain.invoke({
+            analyses: analyses.join('\n\n'),
+        });
+    }
+
+    async processAnalysisHistory(histories: AnalysisHistory[]): Promise<SynthesizedAnalysis> {
+        // Get the top 2 most recent analyses
+        const recentHistories = histories
+            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+            .slice(0, 2);
+
+        // Prepare history context
+        const historyContext = recentHistories
+            .map(h => `Analysis ID: ${h.analysisId}\nTimestamp: ${h.timestamp}\nMetadata: ${JSON.stringify(h.metadata)}`)
+            .join('\n\n');
+
+        // Generate dynamic prompts
+        const dynamicPrompts = await this.generateDynamicPrompts(historyContext);
+
+        // Run analyses in parallel
+        const analysisPromises = dynamicPrompts.map(prompt =>
+            this.analyzeFromPerspective(
+                historyContext,
+                prompt.perspective,
+                prompt.instruction
+            )
+        );
+
+        const analyses = await Promise.all(analysisPromises);
+
+        // Synthesize all analyses
+        return await this.synthesizeAnalyses(analyses);
+    }
 }
