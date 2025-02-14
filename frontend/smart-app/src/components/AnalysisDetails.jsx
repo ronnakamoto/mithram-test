@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import Client from 'fhir-kit-client'
 import apiConfig from '../config/api'
 import AnalysisHistory from './AnalysisHistory'
+import DeepAnalysisModal from './DeepAnalysisModal'
 import { 
   ClockIcon, 
   ArrowPathIcon, 
@@ -130,27 +131,32 @@ function AnalysisDetails({ id, setIsAuthenticated }) {
   const [analysisData, setAnalysisData] = useState(null)
   const [error, setError] = useState(null)
   const [showHistory, setShowHistory] = useState(false)
+  const [showDeepAnalysis, setShowDeepAnalysis] = useState(false)
+  const [deepAnalysisResult, setDeepAnalysisResult] = useState(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
 
   const handleDeepAnalysis = async () => {
+    setIsAnalyzing(true);
     try {
-      setIsAnalyzing(true);
       const response = await fetch(apiConfig.endpoints.analysis.deepAnalysis(analysisData.analysisId), {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${userData.accessToken}`
         }
       });
       
       if (!response.ok) {
-        throw new Error('Failed to perform deep analysis');
+        throw new Error(`Failed to perform deep analysis: ${response.statusText}`);
       }
       
-      const data = await response.json();
-      console.log('Deep Analysis Results:', data);
-      
+      const result = await response.json();
+      setDeepAnalysisResult(result);
+      setShowDeepAnalysis(true);
     } catch (error) {
-      console.error('Error performing deep analysis:', error);
+      console.error('Deep analysis failed:', error);
+      // Add user-friendly error handling
+      // TODO: Add a toast notification here
     } finally {
       setIsAnalyzing(false);
     }
@@ -329,6 +335,11 @@ function AnalysisDetails({ id, setIsAuthenticated }) {
             </div>
           </div>
         )}
+        <DeepAnalysisModal
+          isOpen={showDeepAnalysis}
+          setIsOpen={setShowDeepAnalysis}
+          analysis={deepAnalysisResult}
+        />
       </div>
     </div>
   )
