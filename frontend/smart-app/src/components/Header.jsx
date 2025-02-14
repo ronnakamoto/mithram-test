@@ -1,4 +1,10 @@
 import { Link } from 'wouter';
+import { 
+  ArrowRightOnRectangleIcon, 
+  BookOpenIcon, 
+  BeakerIcon,
+  CodeBracketIcon 
+} from '@heroicons/react/24/outline';
 
 export default function Header({ isAuthenticated, onLogout }) {
   return (
@@ -9,15 +15,25 @@ export default function Header({ isAuthenticated, onLogout }) {
             <a className="text-xl font-medium tracking-tight text-gray-900">Mithram</a>
           </Link>
           <div className="flex items-center space-x-8">
-            <a href="#features" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Features</a>
-            <a href="#docs" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Documentation</a>
-            <a href="https://github.com/ronnakamoto/mithram" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">GitHub</a>
+            <a href="#features" className="text-sm text-gray-600 hover:text-gray-900 transition-colors inline-flex items-center space-x-1">
+              <BeakerIcon className="h-4 w-4" />
+              <span>Features</span>
+            </a>
+            <a href="#docs" className="text-sm text-gray-600 hover:text-gray-900 transition-colors inline-flex items-center space-x-1">
+              <BookOpenIcon className="h-4 w-4" />
+              <span>Documentation</span>
+            </a>
+            <a href="https://github.com/ronnakamoto/mithram" className="text-sm text-gray-600 hover:text-gray-900 transition-colors inline-flex items-center space-x-1">
+              <CodeBracketIcon className="h-4 w-4" />
+              <span>GitHub</span>
+            </a>
             {isAuthenticated && (
               <button
                 onClick={onLogout}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-full text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-full text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer space-x-1"
               >
-                Logout
+                <ArrowRightOnRectangleIcon className="h-4 w-4" />
+                <span>Logout</span>
               </button>
             )}
           </div>

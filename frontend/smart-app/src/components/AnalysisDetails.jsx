@@ -3,6 +3,13 @@ import { useEffect, useState } from 'react'
 import Client from 'fhir-kit-client'
 import apiConfig from '../config/api'
 import AnalysisHistory from './AnalysisHistory'
+import { 
+  ClockIcon, 
+  ArrowPathIcon, 
+  XMarkIcon,
+  ArrowLeftIcon,
+  SparklesIcon
+} from '@heroicons/react/24/outline'
 
 const PatientCard = ({ patient }) => {
   if (!patient) return null;
@@ -226,9 +233,10 @@ function AnalysisDetails({ id, setIsAuthenticated }) {
             <p className="text-gray-600 mb-8">{error}</p>
             <button
               onClick={() => setLocation('/launch')}
-              className="bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-medium hover:bg-gray-800 transition-colors"
+              className="bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-medium hover:bg-gray-800 transition-colors cursor-pointer inline-flex items-center space-x-2"
             >
-              Return to Launch
+              <ArrowLeftIcon className="h-4 w-4" />
+              <span>Return to Launch</span>
             </button>
           </div>
         </div>
@@ -258,18 +266,29 @@ function AnalysisDetails({ id, setIsAuthenticated }) {
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => setShowHistory(true)}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-full text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-full text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer space-x-2"
               >
-                View Analysis History
+                <ClockIcon className="h-4 w-4" />
+                <span>View Analysis History</span>
               </button>
               <button
                 onClick={handleDeepAnalysis}
                 disabled={isAnalyzing}
-                className={`inline-flex items-center px-4 py-2 border border-transparent rounded-full text-sm font-medium text-white ${
-                  isAnalyzing ? 'bg-gray-400 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500'
+                className={`inline-flex items-center px-4 py-2 border border-transparent rounded-full text-sm font-medium text-white space-x-2 ${
+                  isAnalyzing ? 'bg-gray-400 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 cursor-pointer'
                 }`}
               >
-                {isAnalyzing ? 'Analyzing...' : 'Create Deep Analysis'}
+                {isAnalyzing ? (
+                  <>
+                    <ArrowPathIcon className="h-4 w-4 animate-spin" />
+                    <span>Analyzing...</span>
+                  </>
+                ) : (
+                  <>
+                    <SparklesIcon className="h-4 w-4" />
+                    <span>Create Deep Analysis</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -285,11 +304,9 @@ function AnalysisDetails({ id, setIsAuthenticated }) {
                       <h2 className="text-lg font-medium text-gray-900">Analysis History</h2>
                       <button
                         onClick={() => setShowHistory(false)}
-                        className="rounded-full p-2 hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        className="rounded-full p-2 hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                        </svg>
+                        <XMarkIcon className="h-5 w-5 text-gray-500" />
                       </button>
                     </div>
                     <div className="p-6 pt-20 overflow-y-auto max-h-[90vh]">
