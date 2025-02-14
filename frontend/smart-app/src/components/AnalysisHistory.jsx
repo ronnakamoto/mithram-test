@@ -90,15 +90,6 @@ const AnalysisTimeline = ({ history }) => {
                   </div>
                 )}
               </div>
-
-              {/* View details button */}
-              <button 
-                className="mt-4 inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-700"
-                onClick={() => {/* Handle view details */}}
-              >
-                View Details
-                <ChevronRightIcon className="w-4 h-4 ml-1" />
-              </button>
             </div>
           </div>
         ))}
