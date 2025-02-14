@@ -97,7 +97,7 @@ npm start
 
 ## Research Foundation
 
-The GENESIS protocol implementation is based on the GenRead+ idea discussed in the research paper (https://arxiv.org/abs/2209.10063) and extends traditional medical analysis techniques with advanced AI capabilities along with blockchain technologies.
+The GENESIS protocol implementation is based on the GENREAD idea discussed in the research paper (https://arxiv.org/abs/2209.10063) and extends traditional medical analysis techniques with advanced AI capabilities along with blockchain technologies.
 
 ## License
 
