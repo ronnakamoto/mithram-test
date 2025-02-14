@@ -418,10 +418,7 @@ function generateResponseCards(taskId: string, context: any): Card[] {
     cards.push({
         summary: 'AI Expert Panel Analysis Initiated',
         indicator: 'info',
-        detail: `Analysis has been started for this patient. Click "View Analysis" to see real-time results and recommendations.
-
-Current Status: In Progress
-Analysis ID: ${taskId}`,
+        detail: `An automated clinical analysis(Analysis ID: ${taskId}) has been initiated for this patient using advanced AI algorithms. The analysis will evaluate the patient's clinical context and provide evidence-based recommendations. Click "View Analysis" to monitor progress and view recommendations in real-time. Analysis results are typically available within 2-3 minutes.`,
         source: getSourceInfo(),
         links: [{
             label: 'View Analysis',

@@ -80,16 +80,25 @@ contract PatientNFT is ERC721, ERC721URIStorage, ERC721Enumerable, AccessControl
      * @param tokenId The ID of the token to update
      * @param newUri New URI for the token metadata
      * @param newHash New hash of the metadata content
+     * @param analysisId Unique identifier for the analysis
      */
     function updateMetadata(
         uint256 tokenId,
         string memory newUri,
-        bytes32 newHash
+        bytes32 newHash,
+        string memory analysisId
     ) public onlyRole(UPDATER_ROLE) {
         require(_exists(tokenId), "PatientNFT: Token does not exist");
+        require(bytes(analysisId).length > 0, "PatientNFT: Analysis ID cannot be empty");
         
         _setTokenURI(tokenId, newUri);
         _metadataHashes[tokenId] = newHash;
+        
+        // Update analysis ID mapping
+        if (!_analysisExists[analysisId]) {
+        _analysisTokens[analysisId] = tokenId;
+        _analysisExists[analysisId] = true;
+        }
         
         emit MetadataUpdated(tokenId, newHash);
     }

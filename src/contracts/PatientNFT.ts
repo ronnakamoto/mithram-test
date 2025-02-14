@@ -130,6 +130,7 @@ export const PATIENT_NFT_ABI = [
       { name: 'tokenId', type: 'uint256' },
       { name: 'uri', type: 'string' },
       { name: 'metadataHash', type: 'bytes32' },
+      { name: 'analysisId', type: 'string' }
     ],
     name: 'updateMetadata',
     outputs: [],
@@ -321,7 +322,7 @@ export class PatientNFTClient {
         address: this.config.contractAddress,
         abi: PATIENT_NFT_ABI,
         functionName: 'updateMetadata',
-        args: [tokenId, tokenURI, metadataHash],
+        args: [tokenId, tokenURI, metadataHash, metadata.analysisId],
         account: this.account
       });
 

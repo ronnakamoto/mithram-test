@@ -89,11 +89,11 @@ export class NFTManager extends EventEmitter {
    */
   async queueNFTMint(params: {
     patientId: string;
-    userId: string;
     analysisId: string;
     analysisData: any;
   }): Promise<void> {
-    const { patientId, userId, analysisId, analysisData } = params;
+    const { patientId, analysisId, analysisData } = params;
+    console.log('Queueing NFT mint for patient:', patientId, 'analysis:', analysisId);
 
     const metadata: NFTMetadata = {
       patientId,
@@ -105,8 +105,16 @@ export class NFTManager extends EventEmitter {
 
     // Check if patient already has a token
     try {
-      await this.client.getMetadataByPatientId(patientId);
+      const existingMetadata = await this.client.getMetadataByPatientId(patientId);
+      console.log('Existing metadata:', existingMetadata);
+      
+      // Get the token URI to extract the clean object key
+      const tokenUri = await this.client.getTokenURI(existingMetadata.analysisId);
+      const fullObjectKey = new URL(tokenUri).pathname.slice(1); // Remove leading slash
+      const cleanObjectKey = fullObjectKey.replace(/^metadata\/(.+)\.json$/, '$1');
+      
       // If we get here, patient has a token - update instead of mint
+      metadata.previousAnalysis = cleanObjectKey;
       await this.queueMetadataUpdate(analysisId, metadata);
     } catch (error) {
       // If PATIENT_NOT_FOUND, patient doesn't have a token yet - proceed with minting
@@ -151,6 +159,9 @@ export class NFTManager extends EventEmitter {
     if (this.pendingOperations.has(operationKey)) {
       return this.pendingOperations.get(operationKey)!;
     }
+
+    console.log('Queueing NFT update for analysis:', analysisId);
+    console.log('Metadata:', metadata);
 
     const operation = this.executeWithRetry(async (retryCount: number) => {
       try {
@@ -229,6 +240,37 @@ export class NFTManager extends EventEmitter {
   }
 
   /**
+   * Updates the metadata for an existing NFT
+   */
+  private async updateNFT(analysisId: string, metadata: NFTMetadata): Promise<NFTOperationResult> {
+    try {
+      this.emit(NFTManagerEvent.UPDATE_STARTED, analysisId);
+      console.log('Updating NFT metadata:', analysisId);
+      const hash = await this.client.updateMetadata(
+        analysisId,
+        metadata
+      );
+
+      this.emit(NFTManagerEvent.UPDATE_SUCCESS, {
+        analysisId,
+        hash
+      });
+
+      return {
+        success: true,
+        hash
+      };
+    } catch (error) {
+      this.emit(NFTManagerEvent.UPDATE_FAILED, {
+        analysisId,
+        error
+      });
+
+      throw error;
+    }
+  }
+
+  /**
    * Mints a new NFT for a patient's analysis
    */
   async mintNFT(patientId: string, metadata: NFTMetadata): Promise<NFTOperationResult> {
@@ -272,61 +314,6 @@ export class NFTManager extends EventEmitter {
     try {
       const result = await operation;
       return result;
-    } finally {
-      this.pendingOperations.delete(operationKey);
-    }
-  }
-
-  /**
-   * Updates metadata for an existing NFT
-   */
-  async updateNFT(analysisId: string, metadata: NFTMetadata): Promise<NFTOperationResult> {
-    const operationKey = `update:${analysisId}`;
-    
-    if (this.pendingOperations.has(operationKey)) {
-      return this.pendingOperations.get(operationKey)!;
-    }
-
-    const operation = this.executeWithRetry(async (retryCount) => {
-      try {
-        this.emit(NFTManagerEvent.UPDATE_STARTED, { analysisId, metadata, retryCount });
-
-        // Check if there are any previous analyses for this patient
-        try {
-          const patientMetadata = await this.client.getMetadataByPatientId(metadata.patientId);
-          console.log("patientMetadata", patientMetadata);
-          console.log("analysisId", metadata.analysisId);
-          
-          // If we found metadata and it's not the current analysis
-          if (patientMetadata && 
-              patientMetadata.analysisId !== metadata.analysisId) {
-            // Get the token URI to extract the object key
-            const tokenUri = await this.client.getTokenURI(patientMetadata.analysisId);
-            // Extract object key from the tokenUri
-            const objectKey = new URL(tokenUri).pathname.slice(1); // Remove leading slash
-            metadata.previousAnalysis = objectKey;
-          } else {
-            metadata.previousAnalysis = patientMetadata.previousAnalysis;
-          }
-        } catch (error) {
-          // If we can't find any metadata for the patient, this is the first analysis
-          metadata.previousAnalysis = null;
-        }
-
-        const hash = await this.client.updateMetadata(analysisId, metadata);
-        
-        this.emit(NFTManagerEvent.UPDATE_COMPLETED, { analysisId, metadata, hash, retryCount });
-        return { success: true, hash };
-      } catch (error) {
-        this.emit(NFTManagerEvent.UPDATE_FAILED, { analysisId, metadata, error, retryCount });
-        throw error;
-      }
-    });
-
-    this.pendingOperations.set(operationKey, operation);
-    
-    try {
-      return await operation;
     } finally {
       this.pendingOperations.delete(operationKey);
     }
