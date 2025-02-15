@@ -14,6 +14,7 @@ const Chat = ({ onClose, patientId, analysisId, accessToken }) => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState(null);
   const [context, setContext] = useState(null);
+  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -111,8 +112,11 @@ const Chat = ({ onClose, patientId, analysisId, accessToken }) => {
       timestamp: new Date()
     }]);
 
+    // Show typing indicator
+    setIsTyping(true);
+    setIsLoading(true);
+
     try {
-      setIsLoading(true);
       const response = await fetch(`${config.apiUrl}/chat/${patientId}/message`, {
         method: 'POST',
         headers: {
@@ -146,6 +150,7 @@ const Chat = ({ onClose, patientId, analysisId, accessToken }) => {
       }]);
     } finally {
       setIsLoading(false);
+      setIsTyping(false);
     }
   };
 
@@ -173,7 +178,7 @@ const Chat = ({ onClose, patientId, analysisId, accessToken }) => {
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => setIsMinimized(!isMinimized)}
-                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100/80 transition-colors duration-200"
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100/80 transition-colors duration-200 cursor-pointer"
                   aria-label={isMinimized ? "Expand chat" : "Minimize chat"}
                 >
                   {isMinimized ? (
@@ -184,7 +189,7 @@ const Chat = ({ onClose, patientId, analysisId, accessToken }) => {
                 </button>
                 <button
                   onClick={onClose}
-                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100/80 transition-colors duration-200"
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100/80 transition-colors duration-200 cursor-pointer"
                   aria-label="Close chat"
                 >
                   <XMarkIcon className="h-5 w-5 text-gray-500" />
@@ -199,77 +204,93 @@ const Chat = ({ onClose, patientId, analysisId, accessToken }) => {
               {messages.map((message, index) => (
                 <div key={index} className={`flex items-start space-x-3 ${message.role === 'assistant' ? '' : 'justify-end'}`}>
                   {message.role === 'assistant' && (
-                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                      <span className="text-blue-600 text-sm font-medium">M</span>
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
+                      <span className="text-white font-medium">M</span>
                     </div>
                   )}
-                  <div className={`flex-1 ${message.role === 'user' ? 'max-w-[80%]' : ''}`}>
-                    <div className={`rounded-2xl px-4 py-3 shadow-sm ${
+                  <div className={`flex flex-col ${message.role === 'assistant' ? 'items-start' : 'items-end'}`}>
+                    <div className={`rounded-2xl px-4 py-2 max-w-[75%] ${
                       message.role === 'assistant' 
-                        ? 'bg-white/90 backdrop-blur-sm border border-gray-100 rounded-tl-none' 
-                        : 'bg-blue-500 text-white rounded-br-none'
-                    } ${message.isError ? 'bg-red-50 border-red-100 text-red-600' : ''} 
-                      ${message.isLoading ? 'animate-pulse bg-blue-50 border-blue-100' : ''}`}>
-                      <p className={message.role === 'user' ? 'text-white' : 'text-gray-700'}>
-                        {message.content}
-                        {message.isLoading && (
-                          <span className="inline-block ml-1">
-                            <span className="animate-bounce">.</span>
-                            <span className="animate-bounce" style={{ animationDelay: '0.2s' }}>.</span>
-                            <span className="animate-bounce" style={{ animationDelay: '0.4s' }}>.</span>
-                          </span>
-                        )}
-                      </p>
+                        ? 'bg-white shadow-sm border border-gray-100' 
+                        : 'bg-blue-500 text-white'
+                    } ${message.isError ? 'bg-red-50 border-red-100 text-red-600' : ''}`}>
+                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                     </div>
+                    <span className="text-xs text-gray-400 mt-1">
+                      {new Date(message.timestamp).toLocaleTimeString()}
+                    </span>
                   </div>
-                  {message.role === 'user' && (
-                    <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
-                      <span className="text-white text-sm font-medium">U</span>
-                    </div>
-                  )}
                 </div>
               ))}
+              {isTyping && (
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
+                    <span className="text-white font-medium">M</span>
+                  </div>
+                  <div className="flex flex-col items-start">
+                    <div className="rounded-2xl px-4 py-2 bg-white shadow-sm border border-gray-100">
+                      <div className="flex space-x-1">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                      </div>
+                    </div>
+                    <span className="text-xs text-gray-400 mt-1">
+                      Mithram is typing...
+                    </span>
+                  </div>
+                </div>
+              )}
               <div ref={messagesEndRef} />
             </div>
           </div>
 
-          {/* Input Area */}
+          {/* Message Input */}
           <div className="p-4 bg-white/80 backdrop-blur-md border-t border-gray-200/50">
             <div className="relative">
-              <input
-                type="text"
+              <textarea
                 value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder={
-                  error ? 'Chat initialization failed' :
-                  isLoading ? 'Initializing chat...' :
-                  isInitialized ? 'Type your message...' :
-                  'Loading...'
-                }
-                disabled={!isInitialized || isLoading || error}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white/90 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                onChange={(e) => {
+                  setInputValue(e.target.value);
+                  // Auto-adjust height
+                  e.target.style.height = 'inherit';
+                  e.target.style.height = `${Math.min(e.target.scrollHeight, 150)}px`;
+                }}
+                onKeyDown={handleKeyPress}
+                placeholder="Type your message..."
+                className="w-full pr-28 py-3 pl-4 bg-gray-50/80 rounded-xl resize-none overflow-y-auto text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-colors duration-200"
+                style={{
+                  minHeight: '44px',
+                  maxHeight: '150px'
+                }}
+                disabled={!isInitialized || isLoading}
               />
-              <button 
-                onClick={sendMessage}
-                disabled={!isInitialized || isLoading || error}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 px-3 py-1 text-blue-600 hover:text-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? "..." : "Send"}
-              </button>
+              <div className="absolute right-3 bottom-2 flex items-center">
+                <button
+                  onClick={sendMessage}
+                  disabled={!isInitialized || isLoading}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer disabled:cursor-not-allowed ${
+                    !isInitialized || isLoading
+                      ? 'bg-gray-100 text-gray-400'
+                      : 'bg-blue-500 text-white hover:bg-blue-600 hover:shadow-md active:scale-95'
+                  }`}
+                >
+                  {isLoading ? 'Sending...' : 'Send'}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Minimized Tab */}
-        <div 
-          onClick={() => setIsMinimized(false)}
-          className={`absolute top-4 left-0 transform -translate-x-full ${
-            isMinimized ? 'opacity-100' : 'opacity-0 pointer-events-none'
-          } transition-opacity duration-200 cursor-pointer`}
-        >
-          <div className="bg-white/80 backdrop-blur-md px-4 py-2 rounded-l-lg shadow-sm border border-gray-200/50 border-r-0">
-            <span className="text-sm font-medium text-gray-700">Chat with Mithram</span>
+          {/* Minimized Tab */}
+          <div 
+            onClick={() => setIsMinimized(false)}
+            className={`absolute top-4 left-0 transform -translate-x-full ${
+              isMinimized ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            } transition-opacity duration-200 cursor-pointer`}
+          >
+            <div className="bg-white/80 backdrop-blur-md px-4 py-2 rounded-l-lg shadow-sm border border-gray-200/50 border-r-0">
+              <span className="text-sm font-medium text-gray-700">Chat with Mithram</span>
+            </div>
           </div>
         </div>
       </div>
