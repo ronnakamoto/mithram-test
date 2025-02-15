@@ -1,6 +1,6 @@
 # Mithram - AI-Powered Medical Analysis System
 
-Mithram is an advanced medical analysis Clinical Decision Support (CDS) Hooks service that leverages artificial intelligence to provide comprehensive, multi-perspective analysis of patient medical data. The service implements the novel GENESIS (Generative Enrichment via NFT and Synthesis) protocol for enhanced medical insights.
+Mithram(മിത്രം means Friend in Malayalam) is an advanced medical analysis Clinical Decision Support (CDS) Hooks service that leverages artificial intelligence to provide comprehensive, multi-perspective analysis of patient medical data. The service implements the novel GENESIS (Generative Enrichment via NFT and Synthesis) protocol for enhanced medical insights.
 
 GENESIS (Generative Enrichment via NFT and Synthesis) is an innovative protocol that combines advanced AI techniques with blockchain technology to provide comprehensive medical analysis. It utilizes multi-perspective AI analysis, dynamic prompt generation, and NFT-based metadata integration to create a robust, secure, and enriched patient data analysis system.
 
@@ -18,6 +18,7 @@ GENESIS (Generative Enrichment via NFT and Synthesis) is an innovative protocol 
   - Fast-track processing for basic queries
   - Specialist consultation for complex cases
   - Message history with timestamps
+  - Offline chat history stored in IndexedDB within users' browsers
 
 - **Clinical Decision Support (CDS) Hooks**
   - SMART on FHIR authentication
@@ -45,6 +46,7 @@ GENESIS (Generative Enrichment via NFT and Synthesis) is an innovative protocol 
 - Wouter (Routing)
 - Tailwind CSS
 - Heroicons
+- Dexie
 
 ## Installation
 
@@ -105,6 +107,7 @@ npm start
 - Token-based session management
 - Secure API endpoints
 - Protected patient data handling
+- Offline chat history
 
 ## Research Foundation
 
