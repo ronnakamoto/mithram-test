@@ -169,7 +169,7 @@ export class PatientNFTClient {
 
   constructor(config: NFTClientConfig) {
     this.validateConfig(config);
-    
+    console.log("Chain config:", {chain: config.chain, rpcUrl: config.rpcUrl})
     // Create custom hardhat chain configuration if using local network
     const chainConfig: any = config.chain === 31337 ? {
       ...hardhat,
@@ -194,6 +194,8 @@ export class PatientNFTClient {
       storage: config.storage || 'datauri',
       rpcUrl: config.rpcUrl || 'http://127.0.0.1:8545'
     };
+
+    console.log("Config after validation:", this.config);
 
     this.account = privateKeyToAccount(this.config.privateKey);
     
