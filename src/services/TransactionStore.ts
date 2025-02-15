@@ -69,7 +69,7 @@ export class TransactionStore {
         try {
             const command = new GetObjectCommand({
                 Bucket: this.bucketName,
-                Key: `${patientId}.json`
+                Key: `transactions/${patientId}.json`
             });
 
             try {
