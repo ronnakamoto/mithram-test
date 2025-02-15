@@ -11,7 +11,7 @@ import {
   Account
 } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
-import { mainnet, sepolia, hardhat } from 'viem/chains'
+import { mainnet, sepolia, hardhat, baseSepolia } from 'viem/chains'
 import { v5 as uuidv5 } from 'uuid'
 import { keccak256, toBytes } from 'viem/utils'
 import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
@@ -192,6 +192,15 @@ export class PatientNFTClient {
             rpcUrls: {
               default: { http: [config.rpcUrl || sepolia.rpcUrls.default.http[0]] },
               public: { http: [config.rpcUrl || sepolia.rpcUrls.public.http[0]] }
+            }
+          };
+          break;
+        case 84532: // Base Sepolia
+          chainConfig = {
+            ...baseSepolia,
+            rpcUrls: {
+              default: { http: [config.rpcUrl || baseSepolia.rpcUrls.default.http[0]] },
+              public: { http: [config.rpcUrl || baseSepolia.rpcUrls.public.http[0]] }
             }
           };
           break;
