@@ -384,11 +384,11 @@ function AnalysisDetails({ id, setIsAuthenticated }) {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gray-50 pt-20">
-      <div className="container mx-auto px-6 py-8 pt-20">
+    <div className="min-h-screen w-full bg-gray-50 pt-10">
+      <div className="container mx-auto px-6 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-semibold text-gray-900">Patient Analysis</h1>
-          <div className="mt-6 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <h1 className="text-3xl font-semibold text-gray-900 p-6">Patient Analysis</h1>
+          <div className="mt-4 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <h2 className="text-sm font-medium text-gray-700">Analysis Actions</h2>
