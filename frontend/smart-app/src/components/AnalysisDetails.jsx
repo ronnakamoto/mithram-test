@@ -9,7 +9,9 @@ import {
   ArrowPathIcon, 
   XMarkIcon,
   ArrowLeftIcon,
-  SparklesIcon
+  SparklesIcon,
+  LinkIcon,
+  DocumentDuplicateIcon
 } from '@heroicons/react/24/outline'
 
 const PatientCard = ({ patient }) => {
@@ -61,6 +63,25 @@ const PatientCard = ({ patient }) => {
 const AnalysisCard = ({ analysis }) => {
   if (!analysis) return null;
 
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+  };
+
+  const formatDate = (timestamp) => {
+    return new Date(timestamp).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: true
+    });
+  };
+
+  const getExplorerUrl = (hash, chainId) => {
+    return apiConfig.blockExplorer.transaction(hash);
+  };
+
   return (
     <div className="bg-white rounded-2xl p-4">
       <div className="flex items-center justify-between mb-6">
@@ -70,6 +91,52 @@ const AnalysisCard = ({ analysis }) => {
           <span className="text-sm text-gray-600 capitalize">{analysis.status}</span>
         </div>
       </div>
+
+      {/* Transaction Information */}
+      {analysis.transaction && (
+        <div className="mb-8 bg-gray-50 rounded-2xl p-6 border border-gray-100">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-medium text-gray-900">Blockchain Verification</h3>
+            <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs">
+              Chain ID: {analysis.transaction.chainId}
+            </span>
+          </div>
+          
+          <div className="space-y-4">
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-500">Transaction Hash</span>
+                <button
+                  onClick={() => copyToClipboard(analysis.transaction.hash)}
+                  className="text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
+                  title="Copy to clipboard"
+                >
+                  <DocumentDuplicateIcon className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="mt-1 font-mono text-sm text-gray-900 break-all">
+                {analysis.transaction.hash}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+              <div className="text-sm text-gray-500">
+                <ClockIcon className="w-4 h-4 inline-block mr-1" />
+                {formatDate(analysis.transaction.timestamp)}
+              </div>
+              <a
+                href={getExplorerUrl(analysis.transaction.hash, analysis.transaction.chainId)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
+              >
+                View on Explorer
+                <LinkIcon className="w-4 h-4 ml-1" />
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Risk Factors */}
       <div className="mb-8">
@@ -213,7 +280,7 @@ function AnalysisDetails({ id, setIsAuthenticated }) {
           }
           const metadata = await response.json()
 
-          setAnalysisData({ ...metadata.analysis, analysisId: metadata.analysisId })
+          setAnalysisData({ ...metadata.analysis, analysisId: metadata.analysisId, transaction: metadata.transaction })
         } catch (error) {
           console.error('Error fetching analysis:', error)
           setError('Failed to fetch analysis data. Please try again later.')
