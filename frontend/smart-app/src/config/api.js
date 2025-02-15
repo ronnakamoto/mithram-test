@@ -15,6 +15,11 @@ export const config = {
     analysis: {
       history: (analysisId) => `${API_URL}/analysis/${analysisId}/history`,
       deepAnalysis: (analysisId) => `${API_URL}/analysis/${analysisId}/deep-analysis`
+    },
+    chat: {
+      init: (patientId) => `${API_URL}/chat/${patientId}/init`,
+      message: (patientId) => `${API_URL}/chat/${patientId}/message`,
+      history: (patientId) => `${API_URL}/chat/${patientId}/history`
     }
   }
 }

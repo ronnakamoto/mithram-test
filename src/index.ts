@@ -2,6 +2,7 @@
 import express from 'express';
 import cors from 'cors';
 import cdsHooksService from './routes/cdsHooksService';
+import chatService from './routes/chatService';
 import dotenv from 'dotenv';
 
 // Load environment variables
@@ -22,6 +23,7 @@ app.use(express.json());
 
 // Routes
 app.use('/', cdsHooksService);
+app.use('/', chatService); // Add chat service routes
 
 
 app.listen(port, () => {
