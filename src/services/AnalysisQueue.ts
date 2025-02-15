@@ -106,7 +106,7 @@ export class AnalysisQueue {
             const analysisId = uuidv4();
 
             // Queue NFT minting asynchronously
-            await this.nftManager.queueNFTMint({
+            this.nftManager.queueNFTMint({
                 patientId,
                 analysisId,
                 analysisData: {

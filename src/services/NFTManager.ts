@@ -135,30 +135,21 @@ export class NFTManager extends EventEmitter {
     } catch (error: any) {
       console.log("Error getting metadata:", error)
       // If PATIENT_NOT_FOUND, patient doesn't have a token yet - proceed with minting
-      if (error.message.includes('Patient not found')) {
+      if (error.message.includes('Patient not found') || error.code === 'PATIENT_NOT_FOUND') {
         const operationKey = `mint:${analysisId}`;
         
         if (this.pendingOperations.has(operationKey)) {
+          console.log('NFT mint already in progress for analysis:', analysisId);
           return;
         }
 
-        const operation = this.executeWithRetry(async (retryCount) => {
-          try {
-            this.emit(NFTManagerEvent.MINT_STARTED, { analysisId, metadata, retryCount });
-            const result = await this.mintNFT(patientId, metadata);
-            this.emit(NFTManagerEvent.MINT_SUCCESS, { analysisId, metadata, result });
-          } catch (error) {
-            this.emit(NFTManagerEvent.MINT_FAILED, { analysisId, metadata, error, retryCount });
-            throw error;
-          }
-        });
-
-        this.pendingOperations.set(operationKey, operation);
-        
         try {
-          await operation;
-        } finally {
-          this.pendingOperations.delete(operationKey);
+          this.emit(NFTManagerEvent.MINT_STARTED, { analysisId, metadata });
+          const result = await this.mintNFT(patientId, metadata);
+          this.emit(NFTManagerEvent.MINT_SUCCESS, { analysisId, metadata, result });
+        } catch (error) {
+          this.emit(NFTManagerEvent.MINT_FAILED, { analysisId, metadata, error });
+          throw error;
         }
       } else {
         // If it's some other error, throw it
