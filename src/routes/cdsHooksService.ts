@@ -568,20 +568,6 @@ function generateResponseCards(taskId: string, context: any): Card[] {
         }]
     });
 
-    // Additional information card
-    cards.push({
-        summary: 'What to Expect',
-        indicator: 'info',
-        detail: `The AI Expert Panel analysis will:
-1. Analyze patient's clinical history
-2. Consider current conditions and medications
-3. Generate specialist recommendations
-4. Create a detailed care plan
-
-Estimated completion time: 2-3 minutes`,
-        source: getSourceInfo()
-    });
-
     return cards;
 }
 
