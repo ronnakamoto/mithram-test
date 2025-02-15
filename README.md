@@ -1,4 +1,4 @@
-# Mithram - AI-Powered Medical Analysis Platform
+# Mithram - AI-Powered Medical Analysis System
 
 Mithram is an advanced medical analysis Clinical Decision Support (CDS) Hooks service that leverages artificial intelligence to provide comprehensive, multi-perspective analysis of patient medical data. The service implements the novel GENESIS (Generative Enrichment via NFT and Synthesis) protocol for enhanced medical insights.
 
@@ -12,6 +12,12 @@ GENESIS (Generative Enrichment via NFT and Synthesis) is an innovative protocol 
   - Parallel analysis processing
   - Result synthesis and enrichment
   - NFT-based metadata integration
+
+- **Intelligent Chat System**
+  - Context-aware medical responses
+  - Fast-track processing for basic queries
+  - Specialist consultation for complex cases
+  - Message history with timestamps
 
 - **Clinical Decision Support (CDS) Hooks**
   - SMART on FHIR authentication
@@ -83,6 +89,11 @@ npm start
 - `POST /analysis/:analysisId/deep-analysis`: Generate deep analysis using GENESIS protocol
 - `GET /analysis/:analysisId`: Retrieve analysis details
 - `GET /analysis/:analysisId/history`: Get analysis history
+
+### Chat Service Endpoints
+- `POST /chat/:patientId/init`: Initialize chat session with patient context
+- `POST /chat/:patientId/message`: Process chat messages and generate responses
+- `GET /chat/:patientId/history`: Retrieve chat history
 
 ### CDS Hooks Service
 - `POST /cds-services`: Main CDS Hooks discovery point
