@@ -22,7 +22,7 @@ const analysisQueue = new AnalysisQueue({
         contractAddress: process.env.NFT_CONTRACT_ADDRESS  as `0x${string}`,
         privateKey: process.env.NFT_PRIVATE_KEY as `0x${string}`,
         chain: process.env.NFT_CHAIN_ID ? parseInt(process.env.NFT_CHAIN_ID) : 31337,
-        rpcUrl: process.env.NFT_RPC_URL,
+        rpcUrl: process.env.NFT_RPC_URL || 'http://127.0.0.1:8545',
         storage: process.env.NFT_STORAGE_TYPE as unknown as 'ipfs' | 'datauri'
     },
     openai: {
@@ -33,8 +33,8 @@ const analysisQueue = new AnalysisQueue({
 const nftManager = new NFTManager({
     contractAddress: process.env.NFT_CONTRACT_ADDRESS as `0x${string}`,
     privateKey: process.env.NFT_PRIVATE_KEY as `0x${string}`,
-    chain: process.env.NFT_CHAIN as unknown as Chain,
-    rpcUrl: process.env.NFT_RPC_URL,
+    chain: process.env.NFT_CHAIN_ID ? parseInt(process.env.NFT_CHAIN_ID) : 31337,
+    rpcUrl: process.env.NFT_RPC_URL || 'http://127.0.0.1:8545',
     storage: process.env.NFT_STORAGE_TYPE as unknown as 'ipfs' | 'datauri'
 });
 

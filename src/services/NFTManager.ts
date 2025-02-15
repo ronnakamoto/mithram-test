@@ -74,16 +74,25 @@ export class NFTManager extends EventEmitter {
     this.queueInterval = config.queueInterval ?? 5000;
     this.pendingOperations = new Map();
 
+    this.initializeClient(config);
+
+    // Start queue processor
+    this.startQueueProcessor();
+  }
+
+  private initializeClient(config: NFTManagerConfig) {
+    console.log("Initializing NFT client with config:", {
+      chain: config.chain,
+      rpcUrl: config.rpcUrl
+    });
+
     this.client = new PatientNFTClient({
-      contractAddress: config.contractAddress,
+      contractAddress: config.contractAddress as Address,
       privateKey: config.privateKey as `0x${string}`,
       chain: config.chain,
       rpcUrl: config.rpcUrl,
       storage: config.storage
     });
-
-    // Start queue processor
-    this.startQueueProcessor();
   }
 
   /**

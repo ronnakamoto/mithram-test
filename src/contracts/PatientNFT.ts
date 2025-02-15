@@ -176,9 +176,10 @@ export class PatientNFTClient {
     if (typeof config.chain === 'number') {
       switch(config.chain) {
         case 1337:
+        case 31337:
           chainConfig = {
             ...hardhat,
-            id: 1337,
+            id: config.chain,
             rpcUrls: {
               default: { http: [config.rpcUrl || 'http://127.0.0.1:8545'] },
               public: { http: [config.rpcUrl || 'http://127.0.0.1:8545'] }
@@ -211,13 +212,20 @@ export class PatientNFTClient {
       };
     }
 
+    // Ensure RPC URL is consistent
+    const rpcUrl = config.rpcUrl || chainConfig.rpcUrls.default.http[0];
+    chainConfig.rpcUrls = {
+      default: { http: [rpcUrl] },
+      public: { http: [rpcUrl] }
+    };
+
     this.config = {
       chain: chainConfig,
-      transport: config.transport || http(config.rpcUrl || chainConfig.rpcUrls.default.http[0]),
+      transport: config.transport || http(rpcUrl),
       contractAddress: config.contractAddress,
       privateKey: config.privateKey,
       storage: config.storage || 'datauri',
-      rpcUrl: config.rpcUrl || chainConfig.rpcUrls.default.http[0]
+      rpcUrl: rpcUrl
     };
 
     console.log("Chain configuration:", {
