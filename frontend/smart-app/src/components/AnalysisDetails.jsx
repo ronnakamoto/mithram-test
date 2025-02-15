@@ -23,39 +23,89 @@ const PatientCard = ({ patient }) => {
   const age = patient.birthDate ? new Date().getFullYear() - new Date(patient.birthDate).getFullYear() : null;
   
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-8 mb-6">
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-medium text-gray-900">{fullName}</h2>
-          <p className="text-gray-500 mt-1">
-            {age && `${age} years`} • {patient.gender?.charAt(0).toUpperCase() + patient.gender?.slice(1)}
-          </p>
-        </div>
-        <div className="bg-blue-50 text-blue-700 px-4 py-1 rounded-full text-sm">
-          ID: {patient.identifier?.[0]?.value}
-        </div>
+    <div className="relative bg-white/60 backdrop-blur-xl rounded-3xl border border-gray-100/50 shadow-xl shadow-blue-500/5 p-8 mb-6 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 overflow-hidden">
+      {/* Background Pattern */}
+      <div className="absolute inset-0" 
+           style={{ 
+             backgroundImage: `
+               repeating-linear-gradient(0deg, transparent, transparent 49px, rgb(59 130 246 / 0.08) 49px, rgb(59 130 246 / 0.08) 51px),
+               repeating-linear-gradient(90deg, transparent, transparent 49px, rgb(59 130 246 / 0.08) 49px, rgb(59 130 246 / 0.08) 51px)
+             `,
+             backgroundSize: '50px 50px',
+             backgroundColor: 'rgb(239 246 255 / 0.6)'
+           }}>
       </div>
       
-      <div className="grid grid-cols-2 gap-6">
-        <div>
-          <h3 className="text-sm font-medium text-gray-500 mb-2">Contact Information</h3>
-          <div className="space-y-2">
-            {patient.telecom?.map((contact, i) => (
-              <p key={i} className="text-gray-900">
-                {contact.value} ({contact.use})
-              </p>
-            ))}
+      {/* Content */}
+      <div className="relative">
+        <div className="flex items-start justify-between mb-8">
+          <div>
+            <h2 className="text-3xl font-semibold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+              {fullName}
+            </h2>
+            <p className="text-gray-500 mt-2 flex items-center space-x-3">
+              {age && (
+                <span className="bg-gradient-to-r from-blue-400/10 to-blue-600/10 text-blue-600 px-3 py-1 rounded-full text-sm font-medium">
+                  {age} years
+                </span>
+              )}
+              <span className="bg-gradient-to-r from-purple-400/10 to-purple-600/10 text-purple-600 px-3 py-1 rounded-full text-sm font-medium capitalize">
+                {patient.gender}
+              </span>
+            </p>
+          </div>
+          <div className="bg-gradient-to-r from-blue-400 to-blue-600 text-white px-4 py-2 rounded-2xl text-sm font-medium shadow-lg shadow-blue-500/20">
+            ID: {patient.identifier?.[0]?.value}
           </div>
         </div>
         
-        <div>
-          <h3 className="text-sm font-medium text-gray-500 mb-2">Address</h3>
-          {patient.address?.[0] && (
-            <p className="text-gray-900">
-              {patient.address[0].line?.[0]}<br />
-              {patient.address[0].city}, {patient.address[0].state} {patient.address[0].postalCode}
-            </p>
-          )}
+        <div className="grid grid-cols-2 gap-8">
+          <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border border-gray-100/50">
+            <h3 className="text-sm font-medium text-gray-900 mb-4 flex items-center">
+              <span className="w-1 h-1 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 mr-2"></span>
+              Contact Information
+            </h3>
+            <div className="space-y-3">
+              {patient.telecom?.map((contact, i) => (
+                <p key={i} className="text-gray-600 flex items-center space-x-2 group">
+                  <span className="w-8 h-8 flex items-center justify-center rounded-xl bg-gradient-to-r from-blue-400/10 to-blue-600/10 group-hover:from-blue-400 group-hover:to-blue-600 transition-all duration-300">
+                    <svg className="w-4 h-4 text-blue-600 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      {contact.system === 'phone' ? (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                      ) : (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      )}
+                    </svg>
+                  </span>
+                  <span className="text-gray-900 group-hover:text-blue-600 transition-colors duration-200">{contact.value}</span>
+                  <span className="text-sm text-gray-400 capitalize">({contact.use})</span>
+                </p>
+              ))}
+            </div>
+          </div>
+          
+          <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border border-gray-100/50">
+            <h3 className="text-sm font-medium text-gray-900 mb-4 flex items-center">
+              <span className="w-1 h-1 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 mr-2"></span>
+              Address
+            </h3>
+            {patient.address?.[0] && (
+              <div className="space-y-2 text-gray-600">
+                <p className="flex items-center space-x-2 group">
+                  <span className="w-8 h-8 flex items-center justify-center rounded-xl bg-gradient-to-r from-blue-400/10 to-blue-600/10 group-hover:from-blue-400 group-hover:to-blue-600 transition-all duration-300">
+                    <svg className="w-4 h-4 text-blue-600 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </span>
+                  <div className="flex flex-col group-hover:text-blue-600 transition-colors duration-200">
+                    <span className="text-gray-900">{patient.address[0].line?.[0]}</span>
+                    <span>{patient.address[0].city}, {patient.address[0].state} {patient.address[0].postalCode}</span>
+                  </div>
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -110,7 +160,7 @@ const AnalysisCard = ({ analysis }) => {
                 <span className="text-sm text-gray-500">Transaction Hash</span>
                 <button
                   onClick={() => copyToClipboard(analysis.transaction.hash)}
-                  className="text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
+                  className="text-blue-600 hover:bg-gradient-to-r hover:from-blue-400 hover:to-blue-600 hover:text-white p-1 rounded transition-all duration-200 cursor-pointer"
                   title="Copy to clipboard"
                 >
                   <DocumentDuplicateIcon className="w-4 h-4" />
@@ -130,7 +180,7 @@ const AnalysisCard = ({ analysis }) => {
                 href={getExplorerUrl(analysis.transaction.hash, analysis.transaction.chainId)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
+                className="inline-flex items-center text-sm bg-gradient-to-r from-blue-400 to-blue-600 text-white px-3 py-1 rounded-full hover:from-blue-500 hover:to-blue-700 transition-all duration-200 cursor-pointer"
               >
                 View on Explorer
                 <LinkIcon className="w-4 h-4 ml-1" />
@@ -309,7 +359,7 @@ function AnalysisDetails({ id, setIsAuthenticated }) {
             <p className="text-gray-600 mb-8">{error}</p>
             <button
               onClick={() => setLocation('/launch')}
-              className="bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-medium hover:bg-gray-800 transition-colors cursor-pointer inline-flex items-center space-x-2"
+              className="bg-gradient-to-r from-blue-400 to-blue-600 text-white px-6 py-3 rounded-full text-sm font-medium hover:from-blue-500 hover:to-blue-700 hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-200 cursor-pointer inline-flex items-center space-x-2"
             >
               <ArrowLeftIcon className="h-4 w-4" />
               <span>Return to Launch</span>
@@ -347,7 +397,7 @@ function AnalysisDetails({ id, setIsAuthenticated }) {
               <div className="flex items-center space-x-4">
                 <button
                   onClick={() => setShowHistory(true)}
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-full text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer space-x-2"
+                  className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium text-white bg-gradient-to-r from-blue-400 to-blue-600 hover:from-blue-500 hover:to-blue-700 hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-200 cursor-pointer space-x-2"
                 >
                   <ClockIcon className="h-4 w-4" />
                   <span>View Analysis History</span>
@@ -355,8 +405,10 @@ function AnalysisDetails({ id, setIsAuthenticated }) {
                 <button
                   onClick={handleDeepAnalysis}
                   disabled={isAnalyzing}
-                  className={`inline-flex items-center px-4 py-2 border border-transparent rounded-full text-sm font-medium text-white space-x-2 ${
-                    isAnalyzing ? 'bg-gray-400 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 cursor-pointer'
+                  className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium text-white space-x-2 ${
+                    isAnalyzing 
+                      ? 'bg-gray-400 cursor-not-allowed' 
+                      : 'bg-gradient-to-r from-blue-400 to-blue-600 hover:from-blue-500 hover:to-blue-700 hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-200 cursor-pointer'
                   }`}
                 >
                   {isAnalyzing ? (
@@ -373,7 +425,7 @@ function AnalysisDetails({ id, setIsAuthenticated }) {
                 </button>
                 <button
                   onClick={() => setShowChat(true)}
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-full text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer space-x-2"
+                  className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium text-white bg-gradient-to-r from-blue-400 to-blue-600 hover:from-blue-500 hover:to-blue-700 hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-200 cursor-pointer space-x-2"
                 >
                   <ChatBubbleLeftIcon className="h-4 w-4" />
                   <span>Chat with Mithram</span>
@@ -398,9 +450,9 @@ function AnalysisDetails({ id, setIsAuthenticated }) {
                       <h2 className="text-lg font-medium text-gray-900">Analysis History</h2>
                       <button
                         onClick={() => setShowHistory(false)}
-                        className="rounded-full p-2 hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer"
+                        className="rounded-full p-2 hover:bg-gradient-to-r hover:from-blue-400 hover:to-blue-600 hover:text-white transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                       >
-                        <XMarkIcon className="h-5 w-5 text-gray-500" />
+                        <XMarkIcon className="h-5 w-5" />
                       </button>
                     </div>
                     <div className="p-6 pt-20 overflow-y-auto max-h-[90vh]">

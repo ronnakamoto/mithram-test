@@ -173,21 +173,21 @@ const Chat = ({ onClose, patientId, analysisId, accessToken }) => {
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => setIsMinimized(!isMinimized)}
-                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100/80 transition-colors duration-200 cursor-pointer"
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gradient-to-r hover:from-blue-400 hover:to-blue-600 hover:text-white transition-all duration-200 cursor-pointer group"
                   aria-label={isMinimized ? "Expand chat" : "Minimize chat"}
                 >
                   {isMinimized ? (
-                    <PlusIcon className="h-5 w-5 text-gray-500" />
+                    <PlusIcon className="h-5 w-5 text-gray-500 group-hover:text-white" />
                   ) : (
-                    <MinusIcon className="h-5 w-5 text-gray-500" />
+                    <MinusIcon className="h-5 w-5 text-gray-500 group-hover:text-white" />
                   )}
                 </button>
                 <button
                   onClick={onClose}
-                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100/80 transition-colors duration-200 cursor-pointer"
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gradient-to-r hover:from-blue-400 hover:to-blue-600 hover:text-white transition-all duration-200 cursor-pointer group"
                   aria-label="Close chat"
                 >
-                  <XMarkIcon className="h-5 w-5 text-gray-500" />
+                  <XMarkIcon className="h-5 w-5 text-gray-500 group-hover:text-white" />
                 </button>
               </div>
             </div>
@@ -267,7 +267,7 @@ const Chat = ({ onClose, patientId, analysisId, accessToken }) => {
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer disabled:cursor-not-allowed ${
                     !isInitialized || isLoading
                       ? 'bg-gray-100 text-gray-400'
-                      : 'bg-blue-500 text-white hover:bg-blue-600 hover:shadow-md active:scale-95'
+                      : 'bg-gradient-to-r from-blue-400 to-blue-600 text-white hover:from-blue-500 hover:to-blue-700 hover:shadow-lg hover:shadow-blue-500/25 active:scale-95'
                   }`}
                 >
                   {isLoading ? 'Sending...' : 'Send'}
@@ -283,8 +283,8 @@ const Chat = ({ onClose, patientId, analysisId, accessToken }) => {
               isMinimized ? 'opacity-100' : 'opacity-0 pointer-events-none'
             } transition-opacity duration-200 cursor-pointer`}
           >
-            <div className="bg-white/80 backdrop-blur-md px-4 py-2 rounded-l-lg shadow-sm border border-gray-200/50 border-r-0">
-              <span className="text-sm font-medium text-gray-700">Chat with Mithram</span>
+            <div className="bg-gradient-to-r from-blue-400 to-blue-600 px-4 py-2 rounded-l-lg shadow-sm">
+              <span className="text-sm font-medium text-white">Chat with Mithram</span>
             </div>
           </div>
         </div>

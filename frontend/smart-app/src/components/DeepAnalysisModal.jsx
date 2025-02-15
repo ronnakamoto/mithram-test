@@ -83,7 +83,7 @@ const DeepAnalysisModal = ({ isOpen, setIsOpen, analysis }) => {
         <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-xl p-6 transform transition-all">
           {/* Close button */}
           <button
-            className="absolute right-4 top-4 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-full p-1"
+            className="absolute right-4 top-4 rounded-full p-2 hover:bg-gradient-to-r hover:from-blue-400 hover:to-blue-600 hover:text-white transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             onClick={() => setIsOpen(false)}
           >
             <XMarkIcon className="h-6 w-6" />
