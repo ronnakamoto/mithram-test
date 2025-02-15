@@ -106,7 +106,7 @@ export class AnalysisQueue {
             const analysisId = uuidv4();
 
             // Queue NFT minting asynchronously
-            await this.nftManager.queueNFTMint({
+            this.nftManager.queueNFTMint({
                 patientId,
                 analysisId,
                 analysisData: {
@@ -126,7 +126,7 @@ export class AnalysisQueue {
                 throw new Error('AMQP channel not initialized');
             }
 
-            await this.channel.sendToQueue(
+            this.channel.sendToQueue(
                 this.queueName,
                 Buffer.from(JSON.stringify(job)),
                 {

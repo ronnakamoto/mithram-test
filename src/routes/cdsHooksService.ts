@@ -102,8 +102,6 @@ router.post('/cds-services/:id', async (req: Request, res: Response) => {
             });
         }
 
-        console.log('Patient data:', patientData);
-
         // Create analysis task
         const task = await analysisQueue.createAnalysis(
             { ...patientData.patient, conditions: patientData.conditions, observations: patientData.observations, medications: patientData.medications },

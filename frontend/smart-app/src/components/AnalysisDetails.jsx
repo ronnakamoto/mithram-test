@@ -112,8 +112,63 @@ const PatientCard = ({ patient }) => {
   );
 };
 
+const LoadingSkeleton = () => (
+  <div className="bg-white rounded-2xl p-4 animate-pulse">
+    <div className="flex items-center justify-between mb-6">
+      <div className="h-8 w-48 bg-gray-200 rounded-lg"></div>
+      <div className="flex items-center space-x-2">
+        <div className="w-2 h-2 rounded-full bg-gray-200"></div>
+        <div className="h-4 w-20 bg-gray-200 rounded-lg"></div>
+      </div>
+    </div>
+
+    {/* Transaction Skeleton */}
+    <div className="mb-8 bg-gray-50 rounded-2xl p-6 border border-gray-100">
+      <div className="flex items-center justify-between mb-4">
+        <div className="h-4 w-36 bg-gray-200 rounded-lg"></div>
+      </div>
+      <div className="space-y-3">
+        <div className="h-4 w-3/4 bg-gray-200 rounded-lg"></div>
+        <div className="h-4 w-2/3 bg-gray-200 rounded-lg"></div>
+      </div>
+    </div>
+
+    {/* Risk Factors Skeleton */}
+    <div className="mb-8">
+      <div className="h-4 w-24 bg-gray-200 rounded-lg mb-3"></div>
+      <div className="flex flex-wrap gap-2">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-6 w-32 bg-gray-200 rounded-full"></div>
+        ))}
+      </div>
+    </div>
+
+    {/* Recommendations Skeleton */}
+    <div className="mb-8">
+      <div className="h-4 w-48 bg-gray-200 rounded-lg mb-3"></div>
+      <div className="space-y-4">
+        {[1, 2].map((i) => (
+          <div key={i} className="bg-gray-50 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="h-4 w-32 bg-gray-200 rounded-lg"></div>
+              <div className="h-6 w-20 bg-gray-200 rounded-full"></div>
+            </div>
+            <div className="h-4 w-full bg-gray-200 rounded-lg mb-2"></div>
+            <div className="h-4 w-1/3 bg-gray-200 rounded-lg"></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
 const AnalysisCard = ({ analysis }) => {
-  if (!analysis) return null;
+  if (!analysis) return <LoadingSkeleton />;
+  
+  // Check if analysis is in pending state
+  if (analysis.status === 'pending' || !analysis.recommendations) {
+    return <LoadingSkeleton />;
+  }
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
@@ -135,11 +190,17 @@ const AnalysisCard = ({ analysis }) => {
   };
 
   return (
-    <div className="bg-white rounded-2xl p-4">
+    <div className="bg-white rounded-2xl p-4 transition-all duration-300 ease-in-out">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-medium text-gray-900">Analysis Results</h2>
         <div className="flex items-center space-x-2">
-          <div className={`w-2 h-2 rounded-full ${analysis.status === 'completed' ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+          <div className={`w-2 h-2 rounded-full ${
+            analysis.status === 'completed' 
+              ? 'bg-green-500' 
+              : analysis.status === 'pending' 
+                ? 'bg-yellow-500 animate-pulse' 
+                : 'bg-red-500'
+          }`}></div>
           <span className="text-sm text-gray-600 capitalize">{analysis.status}</span>
         </div>
       </div>

@@ -132,9 +132,9 @@ export class NFTManager extends EventEmitter {
       // If we get here, patient has a token - update instead of mint
       metadata.previousAnalysis = cleanObjectKey;
       await this.queueMetadataUpdate(analysisId, metadata);
-    } catch (error) {
+    } catch (error: any) {
       // If PATIENT_NOT_FOUND, patient doesn't have a token yet - proceed with minting
-      if (error instanceof NFTError && error.code === 'PATIENT_NOT_FOUND') {
+      if (error.code === 'PATIENT_NOT_FOUND') {
         const operationKey = `mint:${analysisId}`;
         
         if (this.pendingOperations.has(operationKey)) {
