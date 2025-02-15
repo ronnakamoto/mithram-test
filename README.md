@@ -90,6 +90,8 @@ cd frontend/smart-app
 npm start
 ```
 
+3. Sample Patient Data is available at `data/AliceNewman.xml`
+
 ## API Endpoints
 
 ### Analysis Endpoints
