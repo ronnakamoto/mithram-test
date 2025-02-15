@@ -106,6 +106,50 @@ npm start
 - `POST /cds-services`: Main CDS Hooks discovery point
 - `POST /cds-services/:id`: Primary CDS hook endpoint
 
+## Compliance and Data Governance
+
+### B11 EHR Compliance
+Our system implements key aspects of B11 criterion requirements for Electronic Health Records (EHR) systems:
+
+#### Source Attributes
+The system tracks the following data attributes:
+- **Data Origin**: Source system identification via FHIR endpoints
+- **Timestamp**: Creation and modification timestamps for analyses
+- **Author**: Healthcare provider identification through SMART on FHIR authentication
+- **Version**: Basic version tracking for analyses via NFT metadata
+- **Access History**: Authentication-based access logging
+
+#### FAVES Principles Implementation
+Our system incorporates FAVES principles for responsible healthcare AI:
+
+1. **Fairness**
+   - Authentication-based access control
+   - Standardized FHIR-based data processing
+
+2. **Appropriateness**
+   - Context-aware medical analysis
+   - Integration with clinical workflows via CDS Hooks
+
+3. **Validity**
+   - SMART on FHIR compliance
+   - Structured data validation
+
+4. **Effectiveness**
+   - Real-time analysis capabilities
+   - Integrated chat interface for immediate feedback
+
+5. **Safety**
+   - Secure authentication via SMART on FHIR
+   - Protected health information handling
+
+### Data Security
+
+- **Authentication**: SMART on FHIR-based authentication
+- **Access Control**: Token-based authorization
+- **Data Protection**: Secure API endpoints
+- **Local Storage**: Client-side local storage(IndexedDB) for chat history
+- **Session Management**: Secure session handling
+
 ## Security
 
 - SMART on FHIR authentication
