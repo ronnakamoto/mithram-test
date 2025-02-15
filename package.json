@@ -13,7 +13,8 @@
     "contract:compile": "cd src/blockchain && npx hardhat compile",
     "contract:test": "cd src/blockchain && npx hardhat test test/*.ts",
     "contract:deploy:local": "cd src/blockchain && npx hardhat run scripts/deploy.ts --network localhost",
-    "contract:deploy:sepolia": "cd src/blockchain && npx hardhat run scripts/deploy.ts --network sepolia"
+    "contract:deploy:sepolia": "cd src/blockchain && npx hardhat run scripts/deploy.ts --network sepolia",
+    "contract:deploy:baseSepolia": "cd src/blockchain && npx hardhat run scripts/deploy.ts --network baseSepolia"
   },
   "keywords": [],
   "author": "",
