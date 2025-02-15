@@ -557,10 +557,10 @@ function generateResponseCards(taskId: string, context: any): Card[] {
     cards.push({
         summary: 'AI Expert Panel Analysis Initiated',
         indicator: 'info',
-        detail: `An automated clinical analysis(Analysis ID: ${taskId}) has been initiated for this patient using advanced AI algorithms. The analysis will evaluate the patient's clinical context and provide evidence-based recommendations. Click "View Analysis" to monitor progress and view recommendations in real-time. Analysis results are typically available within 2-3 minutes.`,
+        detail: `An automated clinical analysis(Analysis ID: ${taskId}) has been initiated for this patient using advanced AI algorithms. The analysis will evaluate the patient's clinical context and provide evidence-based recommendations. Click "View Analysis By Mithram" to monitor progress and view recommendations in real-time. Analysis results are typically available within 2-3 minutes.`,
         source: getSourceInfo(),
         links: [{
-            label: 'View Analysis',
+            label: 'View Analysis By Mithram',
             url: smartLaunchUrl.toString(),
             type: 'smart',
         }]
@@ -571,7 +571,7 @@ function generateResponseCards(taskId: string, context: any): Card[] {
 
 function getSourceInfo() {
     return {
-        label: 'MithramAI Expert Panel',
+        label: 'Mithram AI',
         url: config.systemInfo.url,
         icon: config.systemInfo.iconUrl
     };

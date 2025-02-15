@@ -38,6 +38,74 @@ GENESIS (Generative Enrichment via NFT and Synthesis) is an innovative protocol 
   - Heroicons integration
   - Tailwind CSS styling
 
+## GENESIS Protocol Implementation
+
+The GENESIS (Generative Enrichment via NFT and Synthesis) protocol is implemented through a sophisticated multi-stage analysis pipeline that combines AI-driven analysis with blockchain-based data persistence.
+
+### Core Components
+
+1. **Dynamic Prompt Generation**
+   - Analyzes patient history to generate diverse medical perspectives
+   - Uses GPT-4o-mini with temperature 0.0 for consistent outputs
+   - Generates 4 unique analytical perspectives for each case
+
+2. **Multi-Perspective Analysis**
+   - Parallel processing of each perspective
+   - Structured analysis focusing on specific medical domains
+   - Zero-temperature LLM ensures deterministic medical insights
+
+3. **Analysis Synthesis**
+   The protocol synthesizes multiple perspectives into a structured format:
+   ```json
+   {
+       "summary": {
+           "patientOverview": {
+               "age": number,
+               "gender": string,
+               "chronicConditions": ["condition1", "condition2"]
+           },
+           "careApproach": "string"
+       },
+       "recommendations": {
+           "patientEngagement": ["instruction1", "instruction2"],
+           "interdisciplinaryCoordination": ["instruction1", "instruction2"],
+           "preventiveHealthFocus": ["instruction1", "instruction2"],
+           "specialistReferrals": ["instruction1", "instruction2"]
+       },
+       "riskFactors": ["risk1", "risk2"]
+   }
+   ```
+
+4. **NFT Integration**
+   - Each analysis is securely stored on decentralized storage (IPFS via Filebase) as chunks that are spread across multiple IPFS nodes and uses private IPFS buckets
+   - Maintains an immutable chain of medical analyses like a blockchain
+   - Links sequential analyses through `previousAnalysis` references
+
+### Analysis Flow
+
+1. **History Processing**
+   - Retrieves 2 most recent analyses
+   - Sorts by timestamp for temporal context
+   - Prepares consolidated history context
+
+2. **Parallel Analysis**
+   - Generates perspective-specific prompts
+   - Executes analyses concurrently
+   - Maintains consistent output structure
+
+3. **Synthesis and Storage**
+   - Combines multiple perspectives
+   - Generates structured recommendations
+   - Mints NFT with analysis metadata
+   - Updates analysis chain
+
+### Integration Points
+
+- **LavinMQ**: Handles asynchronous analysis queue
+- **FHIR**: Standardized medical data integration
+- **Blockchain**: Immutable analysis storage via NFTs
+- **LangChain**: Orchestrates AI analysis pipeline
+
 ## Technical Stack
 
 ### Backend
@@ -45,6 +113,7 @@ GENESIS (Generative Enrichment via NFT and Synthesis) is an innovative protocol 
 - Express.js
 - LangChain
 - FHIR Kit Client
+- LavinMQ
 
 ### Frontend
 - React
