@@ -23,7 +23,7 @@ export enum NFTManagerEvent {
 export interface NFTManagerConfig {
   contractAddress: Address;
   privateKey: `0x${string}`| string;
-  chain?: Chain;
+  chain?: Chain | number;
   rpcUrl?: string;
   maxRetries?: number;
   retryDelay?: number; // milliseconds

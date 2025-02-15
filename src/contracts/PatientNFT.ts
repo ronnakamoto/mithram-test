@@ -11,7 +11,7 @@ import {
   Account
 } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
-import { mainnet, goerli, hardhat } from 'viem/chains'
+import { mainnet, sepolia, hardhat } from 'viem/chains'
 import { v5 as uuidv5 } from 'uuid'
 import { keccak256, toBytes } from 'viem/utils'
 import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
@@ -27,7 +27,7 @@ export class NFTError extends Error {
 
 // Configuration interface
 export interface NFTClientConfig {
-  chain?: number;
+  chain?: Chain | number;
   transport?: Transport;
   contractAddress: Address;
   privateKey: `0x${string}`;
@@ -170,32 +170,61 @@ export class PatientNFTClient {
   constructor(config: NFTClientConfig) {
     this.validateConfig(config);
     console.log("Chain config:", {chain: config.chain, rpcUrl: config.rpcUrl})
-    // Create custom hardhat chain configuration if using local network
-    const chainConfig: any = config.chain === 31337 ? {
-      ...hardhat,
-      id: 31337,
-      rpcUrls: {
-        default: { http: [config.rpcUrl || 'http://127.0.0.1:8545'] },
-        public: { http: [config.rpcUrl || 'http://127.0.0.1:8545'] }
+    
+    // Determine chain configuration
+    let chainConfig: Chain;
+    if (typeof config.chain === 'number') {
+      switch(config.chain) {
+        case 1337:
+          chainConfig = {
+            ...hardhat,
+            id: 1337,
+            rpcUrls: {
+              default: { http: [config.rpcUrl || 'http://127.0.0.1:8545'] },
+              public: { http: [config.rpcUrl || 'http://127.0.0.1:8545'] }
+            }
+          };
+          break;
+        case 11155111: // Sepolia
+          chainConfig = {
+            ...sepolia,
+            rpcUrls: {
+              default: { http: [config.rpcUrl || sepolia.rpcUrls.default.http[0]] },
+              public: { http: [config.rpcUrl || sepolia.rpcUrls.public.http[0]] }
+            }
+          };
+          break;
+        default:
+          throw new Error(`Unsupported chain ID: ${config.chain}`);
       }
-    } : {
-      id: config.chain || 1337,
-      rpcUrls: {
-        default: { http: [config.rpcUrl || 'http://127.0.0.1:8545'] },
-        public: { http: [config.rpcUrl || 'http://127.0.0.1:8545'] }
-      }
-    };
+    } else if (config.chain) {
+      chainConfig = config.chain;
+    } else {
+      // Default to hardhat local network
+      chainConfig = {
+        ...hardhat,
+        id: 31337,
+        rpcUrls: {
+          default: { http: [config.rpcUrl || 'http://127.0.0.1:8545'] },
+          public: { http: [config.rpcUrl || 'http://127.0.0.1:8545'] }
+        }
+      };
+    }
 
     this.config = {
       chain: chainConfig,
-      transport: config.transport || http(config.rpcUrl),
+      transport: config.transport || http(config.rpcUrl || chainConfig.rpcUrls.default.http[0]),
       contractAddress: config.contractAddress,
       privateKey: config.privateKey,
       storage: config.storage || 'datauri',
-      rpcUrl: config.rpcUrl || 'http://127.0.0.1:8545'
+      rpcUrl: config.rpcUrl || chainConfig.rpcUrls.default.http[0]
     };
 
-    console.log("Config after validation:", this.config);
+    console.log("Chain configuration:", {
+      chainId: this.config.chain.id,
+      name: this.config.chain.name,
+      rpcUrl: this.config.rpcUrl
+    });
 
     this.account = privateKeyToAccount(this.config.privateKey);
     
