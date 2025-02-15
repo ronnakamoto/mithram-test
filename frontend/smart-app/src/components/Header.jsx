@@ -15,15 +15,7 @@ export default function Header({ isAuthenticated, onLogout }) {
             <a className="text-2xl font-bold tracking-tight bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent hover:from-blue-500 hover:to-blue-700 transition-all duration-200">Mithram</a>
           </Link>
           <div className="flex items-center space-x-8">
-            <a href="#features" className="text-sm text-gray-600 hover:text-gray-900 transition-colors inline-flex items-center space-x-1">
-              <BeakerIcon className="h-4 w-4" />
-              <span>Features</span>
-            </a>
-            <a href="#docs" className="text-sm text-gray-600 hover:text-gray-900 transition-colors inline-flex items-center space-x-1">
-              <BookOpenIcon className="h-4 w-4" />
-              <span>Documentation</span>
-            </a>
-            <a href="https://github.com/ronnakamoto/mithram" className="text-sm text-gray-600 hover:text-gray-900 transition-colors inline-flex items-center space-x-1">
+            <a href="https://github.com/ronnakamoto/mithram-test" className="text-sm text-gray-600 hover:text-gray-900 transition-colors inline-flex items-center space-x-1">
               <CodeBracketIcon className="h-4 w-4" />
               <span>GitHub</span>
             </a>
