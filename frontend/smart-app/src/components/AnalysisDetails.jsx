@@ -282,7 +282,7 @@ function AnalysisDetails({ id, setIsAuthenticated }) {
           }
           const metadata = await response.json()
 
-          setAnalysisData({ ...metadata.analysis, analysisId: metadata.analysisId, transaction: metadata.transaction })
+          setAnalysisData({ ...metadata.analysis, analysisId: metadata.analysisId, transaction: metadata.transaction, patientId: metadata.patientId })
         } catch (error) {
           console.error('Error fetching analysis:', error)
           setError('Failed to fetch analysis data. Please try again later.')
@@ -416,8 +416,14 @@ function AnalysisDetails({ id, setIsAuthenticated }) {
           setIsOpen={setShowDeepAnalysis}
           analysis={deepAnalysisResult}
         />
-        {showChat && (
-          <Chat onClose={() => setShowChat(false)} />
+        {showChat && analysisData && userData && (
+          <Chat 
+            key={`chat-${analysisData.analysisId}`} 
+            onClose={() => setShowChat(false)} 
+            patientId={analysisData.patientId}
+            analysisId={analysisData.analysisId}
+            accessToken={userData.accessToken}
+          />
         )}
       </div>
     </div>

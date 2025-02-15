@@ -5,32 +5,32 @@ import { RunnableSequence } from '@langchain/core/runnables';
 
 // --- INTERFACES (Slightly Refined) ---
 
-interface AnalysisHistory {
+export interface AnalysisHistory {
     analysisId: string;
     timestamp: string;
     metadata: Record<string, any>;
 }
 
-interface DynamicPrompt {
+export interface DynamicPrompt {
     perspective: string;
     instruction: string;
 }
 
 // More specific interfaces for the expected JSON structure
-interface PatientOverview {
+export interface PatientOverview {
     age: number;
     gender: string;
     chronicConditions: string[];
 }
 
-interface Recommendations {
+export interface Recommendations {
     patientEngagement: string[];
     interdisciplinaryCoordination: string[];
     preventiveHealthFocus: string[];
     specialistReferrals: string[];
 }
 
-interface SynthesizedAnalysis {
+export interface SynthesizedAnalysis {
     summary: {
         patientOverview: PatientOverview;
         careApproach: string;
