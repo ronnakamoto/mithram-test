@@ -25,10 +25,10 @@ const AnalysisTimeline = ({ history }) => {
         {history.map((item, index) => (
           <div key={item.analysisId} className="relative flex items-start group">
             {/* Status dot */}
-            <div className="absolute left-8 -translate-x-1/2 w-4 h-4 rounded-full bg-white border-2 border-gray-300 group-hover:border-blue-500 transition-colors" />
+            <div className="absolute left-8 -translate-x-1/2 w-4 h-4 rounded-full bg-white border-2 border-gray-300 group-hover:bg-gradient-to-r group-hover:from-blue-400 group-hover:to-blue-600 group-hover:border-transparent transition-all duration-200" />
             
             {/* Content card */}
-            <div className="ml-16 flex-1 bg-white rounded-2xl border border-gray-100 hover:border-gray-200 transition-colors p-6">
+            <div className="ml-16 flex-1 bg-white rounded-2xl border border-gray-100 hover:border-blue-200 transition-all duration-200 p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-3">
                   <StatusIcon status={item.analysis.status} />
@@ -46,9 +46,9 @@ const AnalysisTimeline = ({ history }) => {
                 {/* Status and timestamp */}
                 <div className="flex items-center justify-between text-sm">
                   <span className={`px-3 py-1 rounded-full ${
-                    item.analysis.status === 'completed' ? 'bg-green-50 text-green-700' :
-                    item.analysis.status === 'failed' ? 'bg-red-50 text-red-700' :
-                    'bg-blue-50 text-blue-700'
+                    item.analysis.status === 'completed' ? 'bg-gradient-to-r from-green-400 to-green-600 text-white' :
+                    item.analysis.status === 'failed' ? 'bg-gradient-to-r from-red-400 to-red-600 text-white' :
+                    'bg-gradient-to-r from-blue-400 to-blue-600 text-white'
                   }`}>
                     {item.analysis.status.charAt(0).toUpperCase() + item.analysis.status.slice(1)}
                   </span>
@@ -67,7 +67,7 @@ const AnalysisTimeline = ({ history }) => {
                     {item.analysis.recommendations.specialists?.length > 0 && (
                       <div className="flex flex-wrap gap-2">
                         {item.analysis.recommendations.specialists.map((specialist, i) => (
-                          <span key={i} className="inline-flex items-center px-3 py-1 rounded-full bg-white text-sm text-gray-700 border border-gray-200">
+                          <span key={i} className="inline-flex items-center px-3 py-1 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 text-white text-sm hover:from-blue-500 hover:to-blue-700 transition-all duration-200">
                             {specialist.specialty}
                           </span>
                         ))}
@@ -82,7 +82,7 @@ const AnalysisTimeline = ({ history }) => {
                     <h4 className="text-sm font-medium text-gray-700 mb-2">Risk Factors</h4>
                     <div className="flex flex-wrap gap-2">
                       {item.analysis.recommendations.riskFactors.map((risk, i) => (
-                        <span key={i} className="inline-flex items-center px-3 py-1 rounded-full bg-yellow-50 text-sm text-yellow-700">
+                        <span key={i} className="inline-flex items-center px-3 py-1 rounded-full bg-gradient-to-r from-yellow-400 to-yellow-600 text-white text-sm">
                           {risk}
                         </span>
                       ))}
@@ -148,7 +148,7 @@ const AnalysisHistory = ({ analysisId }) => {
     <div className="bg-gray-50 rounded-3xl p-8">
       <div className="flex items-center justify-between mb-8">
         <h2 className="text-2xl font-semibold text-gray-900">Analysis History</h2>
-        <span className="bg-blue-50 text-blue-700 px-4 py-1 rounded-full text-sm">
+        <span className="bg-gradient-to-r from-blue-400 to-blue-600 text-white px-4 py-1 rounded-full text-sm">
           {history.length} Analyses
         </span>
       </div>
