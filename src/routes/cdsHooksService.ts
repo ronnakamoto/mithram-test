@@ -12,6 +12,7 @@ import { ucanMapper } from '../middleware/ucanMapper';
 import authMiddleware from '../middleware/authMiddleware';
 import { AnalysisHistoryManager } from '../utils/analysisHistory';
 import { GenesisService } from '../services/Genesis';
+import { TransactionStore } from '../services/TransactionStore';
 
 const router = express.Router();
 
@@ -44,6 +45,9 @@ const historyManager = new AnalysisHistoryManager(nftManager);
 
 // Initialize Genesis service
 const genesisService = new GenesisService(config.analysisQueue.openai.apiKey);
+
+// Initialize TransactionStore
+const transactionStore = new TransactionStore();
 
 // CDS Services Discovery Endpoint
 router.get('/cds-services', (req: Request, res: Response) => {
@@ -173,7 +177,35 @@ router.get('/patient/:patientId/metadata', authMiddleware, async (req: Request, 
         }
 
         const metadata = await nftManager.getMetadataByPatientId(patientId);
-        res.json(metadata);
+        
+        if (!metadata) {
+            return res.status(404).json({ 
+                error: 'Patient not found',
+                message: 'No NFT analysis exists for this patient. Please initiate a new analysis.',
+                code: 'PATIENT_NOT_FOUND'
+            });
+        }
+
+        // Get all transactions for this patient
+        const transactions = await transactionStore.getPatientTransactions(patientId);
+        
+        // Create a map of analysisId to transaction info
+        const transactionMap = transactions.reduce((map, tx) => {
+            map[tx.analysisId] = {
+                hash: tx.transactionHash,
+                chainId: tx.chainId,
+                timestamp: tx.timestamp
+            };
+            return map;
+        }, {} as Record<string, { hash: string; chainId: string; timestamp: number; }>);
+        
+        // Add transaction info to each metadata entry
+        const response = {
+            ...metadata,
+            transaction: transactionMap[metadata.analysisId] || null
+        };
+
+        res.json(response);
     } catch (error: any) {
         console.error('Error fetching patient metadata:', error);
         
@@ -205,7 +237,21 @@ router.get('/analysis/:analysisId', authMiddleware, async (req: Request, res: Re
         }
 
         const metadata = await nftManager.getMetadata(analysisId);
-        res.json(metadata);
+        
+        // Get transaction information
+        const transactionRecord = await transactionStore.getTransactionByAnalysisId(metadata.patientId, analysisId);
+        
+        // Combine metadata with transaction info
+        const response = {
+            ...metadata,
+            transaction: transactionRecord ? {
+                hash: transactionRecord.transactionHash,
+                chainId: transactionRecord.chainId,
+                timestamp: transactionRecord.timestamp,
+            } : null
+        };
+
+        res.json(response);
     } catch (error: any) {
         console.error('Error fetching analysis metadata:', error);
         
