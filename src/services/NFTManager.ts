@@ -24,6 +24,7 @@ export interface NFTManagerConfig {
   contractAddress: Address;
   privateKey: `0x${string}`| string;
   chain?: Chain;
+  rpcUrl?: string;
   maxRetries?: number;
   retryDelay?: number; // milliseconds
   storage?: 'ipfs' | 'datauri';
@@ -77,6 +78,7 @@ export class NFTManager extends EventEmitter {
       contractAddress: config.contractAddress,
       privateKey: config.privateKey as `0x${string}`,
       chain: config.chain,
+      rpcUrl: config.rpcUrl,
       storage: config.storage
     });
 
