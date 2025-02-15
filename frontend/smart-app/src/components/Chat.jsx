@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { XMarkIcon, MinusIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { config } from '../config/api';
+import { db } from '../services/db';
 
 const Chat = ({ onClose, patientId, analysisId, accessToken }) => {
   const [isMinimized, setIsMinimized] = useState(false);
@@ -52,28 +53,19 @@ const Chat = ({ onClose, patientId, analysisId, accessToken }) => {
         const data = await response.json();
         setContext(data.context);
 
-        // Get history
-        const historyResponse = await fetch(`${config.apiUrl}/chat/${patientId}/history`, {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`
-          }
-        });
-
-        let hasHistory = false;
-        if (historyResponse.ok) {
-          const { history } = await historyResponse.json();
-          if (history && history.length > 0) {
-            setMessages(history);
-            hasHistory = true;
-          }
-        }
-
-        if (!hasHistory) {
-          setMessages([{
+        // Load messages from IndexedDB
+        const savedMessages = await db.getMessages(patientId, analysisId);
+        
+        if (savedMessages && savedMessages.length > 0) {
+          setMessages(savedMessages);
+        } else {
+          const welcomeMessage = {
             role: 'assistant',
             content: 'I have reviewed your medical history and analysis details. I\'m ready to assist you with any questions or concerns you may have.',
             timestamp: new Date()
-          }]);
+          };
+          await db.saveMessage(patientId, analysisId, welcomeMessage);
+          setMessages([welcomeMessage]);
         }
 
         setIsInitialized(true);
@@ -92,31 +84,28 @@ const Chat = ({ onClose, patientId, analysisId, accessToken }) => {
       document.body.style.overflow = 'unset';
       setIsInitialized(false);
       setContext(null);
-      setMessages([{
-        role: 'assistant',
-        content: 'Hello! I am Mithram, your medical AI assistant. I\'m here to help you with any medical questions or concerns.',
-        timestamp: new Date()
-      }]);
     };
   }, [patientId, analysisId, accessToken]);
 
   const sendMessage = async () => {
     if (!inputValue.trim() || !isInitialized || !context) return;
 
-    const userMessage = inputValue.trim();
+    const userMessage = {
+      role: 'user',
+      content: inputValue.trim(),
+      timestamp: new Date()
+    };
+
     setInputValue('');
     
-    setMessages(prev => [...prev, {
-      role: 'user',
-      content: userMessage,
-      timestamp: new Date()
-    }]);
-
-    // Show typing indicator
-    setIsTyping(true);
-    setIsLoading(true);
+    // Save user message to IndexedDB and update state
+    await db.saveMessage(patientId, analysisId, userMessage);
+    setMessages(prev => [...prev, userMessage]);
 
     try {
+      setIsLoading(true);
+      setIsTyping(true);
+
       const response = await fetch(`${config.apiUrl}/chat/${patientId}/message`, {
         method: 'POST',
         headers: {
@@ -124,7 +113,7 @@ const Chat = ({ onClose, patientId, analysisId, accessToken }) => {
           'Authorization': `Bearer ${accessToken}`
         },
         body: JSON.stringify({ 
-          message: userMessage,
+          message: userMessage.content,
           context: context 
         })
       });
@@ -135,19 +124,25 @@ const Chat = ({ onClose, patientId, analysisId, accessToken }) => {
 
       const { response: aiResponse } = await response.json();
       
-      setMessages(prev => [...prev, {
+      const assistantMessage = {
         role: 'assistant',
         content: aiResponse,
         timestamp: new Date()
-      }]);
+      };
+
+      // Save assistant message to IndexedDB and update state
+      await db.saveMessage(patientId, analysisId, assistantMessage);
+      setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
       console.error('Error sending message:', error);
-      setMessages(prev => [...prev, {
+      const errorMessage = {
         role: 'assistant',
         content: 'I apologize, but I encountered an error processing your message. Please try again.',
         timestamp: new Date(),
         isError: true
-      }]);
+      };
+      await db.saveMessage(patientId, analysisId, errorMessage);
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
       setIsTyping(false);
