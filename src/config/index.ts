@@ -24,7 +24,7 @@ export const config = {
         nft: {
             contractAddress: process.env.NFT_CONTRACT_ADDRESS,
             privateKey: process.env.NFT_PRIVATE_KEY,
-            chain: process.env.NFT_CHAIN || 'hardhat',
+            chain: process.env.NFT_CHAIN_ID ? parseInt(process.env.NFT_CHAIN_ID) : 31337,
             rpcUrl: process.env.NFT_RPC_URL || 'http://127.0.0.1:8545',
             storage: process.env.NFT_STORAGE_TYPE || 'datauri'
         },
@@ -47,7 +47,7 @@ export const config = {
     nft: {
         contractAddress: process.env.NFT_CONTRACT_ADDRESS,
         privateKey: process.env.NFT_PRIVATE_KEY,
-        chain: process.env.NFT_CHAIN_ID || 31337,
+        chain: process.env.NFT_CHAIN_ID ? parseInt(process.env.NFT_CHAIN_ID) : 31337,
         rpcUrl: process.env.NFT_RPC_URL || 'http://127.0.0.1:8545',
         storage: process.env.NFT_STORAGE_TYPE || 'datauri'
     },
