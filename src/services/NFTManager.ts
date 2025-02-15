@@ -2,6 +2,7 @@ import { Chain, Hash, Address } from 'viem';
 import { PatientNFTClient, NFTMetadata, NFTError } from '../contracts/PatientNFT';
 import { EventEmitter } from 'events';
 import { setTimeout } from 'timers/promises';
+import { TransactionStore, TransactionStoreConfig } from './TransactionStore';
 
 /**
  * Events emitted by NFTManager
@@ -29,6 +30,7 @@ export interface NFTManagerConfig {
   retryDelay?: number; // milliseconds
   storage?: 'ipfs' | 'datauri';
   queueInterval?: number; // milliseconds
+  transactionStore?: TransactionStoreConfig;
 }
 
 /**
@@ -65,6 +67,7 @@ export class NFTManager extends EventEmitter {
   private pendingOperations: Map<string, Promise<NFTOperationResult>>;
   private operationQueue: QueuedOperation[] = [];
   private queueProcessor?: NodeJS.Timeout;
+  private transactionStore?: TransactionStore;
 
   constructor(config: NFTManagerConfig) {
     super();
@@ -73,6 +76,8 @@ export class NFTManager extends EventEmitter {
     this.retryDelay = config.retryDelay ?? 1000;
     this.queueInterval = config.queueInterval ?? 5000;
     this.pendingOperations = new Map();
+
+    this.transactionStore = new TransactionStore();
 
     this.initializeClient(config);
 
@@ -250,84 +255,79 @@ export class NFTManager extends EventEmitter {
     }
   }
 
+  private async handleOperationSuccess(
+    type: 'mint' | 'update',
+    patientId: string,
+    analysisId: string,
+    result: NFTOperationResult,
+    metadata: NFTMetadata
+  ) {
+    if (this.transactionStore && result.hash) {
+      await this.transactionStore.storeTransaction(patientId, {
+        analysisId,
+        metadataHash: metadata.hash || '',
+        transactionHash: result.hash,
+        chainId: (this.client.config.chain.id).toString(),
+        timestamp: Date.now()
+      });
+    }
+
+    this.emit(
+      type === 'mint' ? NFTManagerEvent.MINT_SUCCESS : NFTManagerEvent.UPDATE_SUCCESS,
+      {
+        patientId,
+        analysisId,
+        hash: result.hash,
+        tokenId: result.tokenId
+      }
+    );
+  }
+
   /**
    * Updates the metadata for an existing NFT
    */
   private async updateNFT(analysisId: string, metadata: NFTMetadata): Promise<NFTOperationResult> {
-    try {
-      this.emit(NFTManagerEvent.UPDATE_STARTED, analysisId);
-      console.log('Updating NFT metadata:', analysisId);
-      const hash = await this.client.updateMetadata(
-        analysisId,
-        metadata
-      );
+    const result = await this.executeWithRetry(async (retryCount) => {
+      try {
+        const hash = await this.client.updateMetadata(analysisId, metadata);
+        return { success: true, hash };
+      } catch (error) {
+        if (retryCount >= this.maxRetries) {
+          return { success: false, error: error as Error };
+        }
+        throw error;
+      }
+    });
 
-      this.emit(NFTManagerEvent.UPDATE_SUCCESS, {
-        analysisId,
-        hash
-      });
-
-      return {
-        success: true,
-        hash
-      };
-    } catch (error) {
-      this.emit(NFTManagerEvent.UPDATE_FAILED, {
-        analysisId,
-        error
-      });
-
-      throw error;
+    if (result.success) {
+      // Get patientId from the metadata
+      await this.handleOperationSuccess('update', metadata.patientId, analysisId, result, metadata);
     }
+
+    return result;
   }
 
   /**
    * Mints a new NFT for a patient's analysis
    */
   async mintNFT(patientId: string, metadata: NFTMetadata): Promise<NFTOperationResult> {
-    const operationKey = `mint:${patientId}:${metadata.analysisId}`;
-    
-    if (this.pendingOperations.has(operationKey)) {
-      return this.pendingOperations.get(operationKey)!;
-    }
-
-    const operation = this.executeWithRetry(async (retryCount) => {
+    const result = await this.executeWithRetry(async (retryCount) => {
       try {
-        this.emit(NFTManagerEvent.MINT_STARTED, { patientId, metadata, retryCount });
-
-        if (await this.client.exists(metadata.analysisId)) {
-          throw new NFTError('NFT already exists for this analysis', 'DUPLICATE_NFT');
-        }
-
-        const result = await this.client.mintPatientNFT(patientId, metadata);
-        
-        this.emit(NFTManagerEvent.MINT_SUCCESS, {
-          patientId,
-          metadata,
-          tokenId: result.tokenId,
-          hash: result.hash
-        });
-
-        return {
-          success: true,
-          tokenId: result.tokenId,
-          hash: result.hash,
-          retryCount
-        };
+        const { hash, tokenId } = await this.client.mintPatientNFT(patientId, metadata);
+        return { success: true, hash, tokenId };
       } catch (error) {
-        this.emit(NFTManagerEvent.MINT_FAILED, { patientId, metadata, error, retryCount });
+        if (retryCount >= this.maxRetries) {
+          return { success: false, error: error as Error };
+        }
         throw error;
       }
     });
 
-    this.pendingOperations.set(operationKey, operation);
-    
-    try {
-      const result = await operation;
-      return result;
-    } finally {
-      this.pendingOperations.delete(operationKey);
+    if (result.success) {
+      await this.handleOperationSuccess('mint', patientId, metadata.analysisId, result, metadata);
     }
+
+    return result;
   }
 
   /**
