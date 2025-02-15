@@ -4,6 +4,7 @@ import Client from 'fhir-kit-client'
 import apiConfig from '../config/api'
 import AnalysisHistory from './AnalysisHistory'
 import DeepAnalysisModal from './DeepAnalysisModal'
+import Chat from './Chat'
 import { 
   ClockIcon, 
   ArrowPathIcon, 
@@ -11,7 +12,7 @@ import {
   ArrowLeftIcon,
   SparklesIcon,
   LinkIcon,
-  DocumentDuplicateIcon
+  DocumentDuplicateIcon,
 } from '@heroicons/react/24/outline'
 
 const PatientCard = ({ patient }) => {
@@ -201,6 +202,7 @@ function AnalysisDetails({ id, setIsAuthenticated }) {
   const [showDeepAnalysis, setShowDeepAnalysis] = useState(false)
   const [deepAnalysisResult, setDeepAnalysisResult] = useState(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [showChat, setShowChat] = useState(false)
 
   const handleDeepAnalysis = async () => {
     setIsAnalyzing(true);
@@ -368,6 +370,13 @@ function AnalysisDetails({ id, setIsAuthenticated }) {
                     </>
                   )}
                 </button>
+                <button
+                  onClick={() => setShowChat(true)}
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-full text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer space-x-2"
+                >
+                  <SparklesIcon className="h-4 w-4" />
+                  <span>Chat with Mithram</span>
+                </button>
               </div>
             </div>
           </div>
@@ -407,6 +416,9 @@ function AnalysisDetails({ id, setIsAuthenticated }) {
           setIsOpen={setShowDeepAnalysis}
           analysis={deepAnalysisResult}
         />
+        {showChat && (
+          <Chat onClose={() => setShowChat(false)} />
+        )}
       </div>
     </div>
   )
