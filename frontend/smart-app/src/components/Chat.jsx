@@ -3,11 +3,39 @@ import { XMarkIcon, MinusIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { config } from '../config/api';
 import { db } from '../services/db';
 
+const LoadingSkeleton = () => (
+  <div className="animate-pulse space-y-4">
+    <div className="flex items-start space-x-3">
+      <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
+      <div className="flex-1 space-y-2">
+        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+        <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+      </div>
+    </div>
+    <div className="flex items-start justify-end space-x-3">
+      <div className="flex-1 space-y-2">
+        <div className="h-4 bg-gray-200 rounded w-2/3 ml-auto"></div>
+      </div>
+    </div>
+  </div>
+);
+
+const TypingIndicator = () => (
+  <div className="flex items-center space-x-2 text-gray-500 text-sm">
+    <div className="flex space-x-1">
+      <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+      <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+      <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+    </div>
+    <span>Mithram is typing...</span>
+  </div>
+);
+
 const Chat = ({ onClose, patientId, analysisId, accessToken }) => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState([{
     role: 'assistant',
-    content: 'Hello! I am Mithram, your medical AI assistant. I\'m here to help you with any medical questions or concerns.',
+    content: 'Hello, I am Mithram AI. I have analyzed the patient\'s medical data and am ready to assist you with insights and recommendations.',
     timestamp: new Date()
   }]);
   const [inputValue, setInputValue] = useState('');
@@ -61,7 +89,7 @@ const Chat = ({ onClose, patientId, analysisId, accessToken }) => {
         } else {
           const welcomeMessage = {
             role: 'assistant',
-            content: 'I have reviewed your medical history and analysis details. I\'m ready to assist you with any questions or concerns you may have.',
+            content: 'I have analyzed the patient\'s medical history and current data. I\'m ready to assist you with clinical insights and recommendations.',
             timestamp: new Date()
           };
           await db.saveMessage(patientId, analysisId, welcomeMessage);
@@ -195,84 +223,91 @@ const Chat = ({ onClose, patientId, analysisId, accessToken }) => {
 
           {/* Chat Content */}
           <div className="flex-1 p-6 overflow-y-auto bg-white/60 backdrop-blur-md">
-            <div className="space-y-4">
-              {messages.map((message, index) => (
-                <div key={index} className={`flex items-start space-x-3 ${message.role === 'assistant' ? '' : 'justify-end'}`}>
-                  {message.role === 'assistant' && (
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
-                      <span className="text-white font-medium">M</span>
-                    </div>
-                  )}
-                  <div className={`flex flex-col ${message.role === 'assistant' ? 'items-start' : 'items-end'}`}>
-                    <div className={`rounded-2xl px-4 py-2 max-w-[75%] ${
-                      message.role === 'assistant' 
-                        ? 'bg-white shadow-sm border border-gray-100' 
-                        : 'bg-blue-500 text-white'
-                    } ${message.isError ? 'bg-red-50 border-red-100 text-red-600' : ''}`}>
-                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                    </div>
-                    <span className="text-xs text-gray-400 mt-1">
-                      {new Date(message.timestamp).toLocaleTimeString()}
-                    </span>
+            {error ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center space-y-4">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100">
+                    <XMarkIcon className="h-8 w-8 text-red-600" />
                   </div>
+                  <p className="text-gray-600">{error}</p>
+                  <button 
+                    onClick={() => window.location.reload()}
+                    className="px-4 py-2 bg-gradient-to-r from-blue-400 to-blue-600 text-white rounded-lg hover:from-blue-500 hover:to-blue-700 transition-all duration-200"
+                  >
+                    Retry
+                  </button>
                 </div>
-              ))}
-              {isTyping && (
-                <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
-                    <span className="text-white font-medium">M</span>
-                  </div>
-                  <div className="flex flex-col items-start">
-                    <div className="rounded-2xl px-4 py-2 bg-white shadow-sm border border-gray-100">
-                      <div className="flex space-x-1">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {messages.map((message, index) => (
+                  <div key={index} className={`flex items-start space-x-3 ${message.role === 'assistant' ? '' : 'justify-end'}`}>
+                    {message.role === 'assistant' && (
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 flex items-center justify-center text-white font-medium">
+                        M
+                      </div>
+                    )}
+                    <div 
+                      className={`max-w-[80%] rounded-2xl px-4 py-2 ${
+                        message.role === 'assistant' 
+                          ? 'bg-white shadow-sm' 
+                          : 'bg-gradient-to-r from-blue-400 to-blue-600 text-white'
+                      } ${message.isError ? 'bg-red-50 text-red-600 border border-red-200' : ''}`}
+                    >
+                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                      <div className="mt-1 text-xs opacity-60">
+                        {new Date(message.timestamp).toLocaleTimeString()}
                       </div>
                     </div>
-                    <span className="text-xs text-gray-400 mt-1">
-                      Mithram is typing...
-                    </span>
                   </div>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
+                ))}
+                {isTyping && (
+                  <div className="flex items-start space-x-3">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 flex items-center justify-center text-white font-medium">
+                      M
+                    </div>
+                    <div className="bg-white rounded-2xl px-4 py-3 shadow-sm">
+                      <div className="flex items-center space-x-2 text-gray-500 text-sm">
+                        <div className="flex space-x-1">
+                          <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                          <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                          <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                        </div>
+                        <span>Analyzing...</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+            )}
           </div>
 
-          {/* Message Input */}
+          {/* Input Area */}
           <div className="p-4 bg-white/80 backdrop-blur-md border-t border-gray-200/50">
             <div className="relative">
               <textarea
                 value={inputValue}
-                onChange={(e) => {
-                  setInputValue(e.target.value);
-                  // Auto-adjust height
-                  e.target.style.height = 'inherit';
-                  e.target.style.height = `${Math.min(e.target.scrollHeight, 150)}px`;
-                }}
-                onKeyDown={handleKeyPress}
-                placeholder="Type your message..."
-                className="w-full pr-28 py-3 pl-4 bg-gray-50/80 rounded-xl resize-none overflow-y-auto text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-colors duration-200"
-                style={{
-                  minHeight: '44px',
-                  maxHeight: '150px'
-                }}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder={isInitialized ? "Ask about patient analysis or request recommendations..." : "Initializing..."}
                 disabled={!isInitialized || isLoading}
+                className={`w-full px-4 py-3 rounded-xl border ${
+                  isInitialized ? 'border-gray-200 focus:border-blue-400' : 'border-gray-100 bg-gray-50'
+                } focus:ring-2 focus:ring-blue-400/20 focus:outline-none resize-none transition-all duration-200`}
+                rows="1"
               />
-              <div className="absolute right-3 bottom-2 flex items-center">
-                <button
-                  onClick={sendMessage}
-                  disabled={!isInitialized || isLoading}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer disabled:cursor-not-allowed ${
-                    !isInitialized || isLoading
-                      ? 'bg-gray-100 text-gray-400'
-                      : 'bg-gradient-to-r from-blue-400 to-blue-600 text-white hover:from-blue-500 hover:to-blue-700 hover:shadow-lg hover:shadow-blue-500/25 active:scale-95'
-                  }`}
-                >
-                  {isLoading ? 'Sending...' : 'Send'}
-                </button>
-              </div>
+              <button
+                onClick={sendMessage}
+                disabled={!isInitialized || isLoading || !inputValue.trim()}
+                className={`absolute right-2 bottom-2 px-4 py-1.5 rounded-lg ${
+                  isInitialized && inputValue.trim() 
+                    ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white hover:from-blue-500 hover:to-blue-700' 
+                    : 'bg-gray-100 text-gray-400'
+                } transition-all duration-200`}
+              >
+                Send
+              </button>
             </div>
           </div>
 

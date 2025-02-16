@@ -15,84 +15,92 @@ const StatusIcon = ({ status }) => {
 };
 
 const AnalysisTimeline = ({ history }) => {
-  return (
-    <div className="relative">
-      {/* Vertical line */}
-      <div className="absolute left-8 top-0 bottom-0 w-px bg-gray-200" />
-      
-      {/* Timeline items */}
-      <div className="space-y-6">
-        {history.map((item, index) => (
-          <div key={item.analysisId} className="relative flex items-start group">
-            {/* Status dot */}
-            <div className="absolute left-8 -translate-x-1/2 w-4 h-4 rounded-full bg-white border-2 border-gray-300 group-hover:bg-gradient-to-r group-hover:from-blue-400 group-hover:to-blue-600 group-hover:border-transparent transition-all duration-200" />
-            
-            {/* Content card */}
-            <div className="ml-16 flex-1 bg-white rounded-2xl border border-gray-100 hover:border-blue-200 transition-all duration-200 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-3">
-                  <StatusIcon status={item.analysis.status} />
-                  <h3 className="text-lg font-medium text-gray-900">
-                    Analysis {history.length - index}
-                  </h3>
-                </div>
-                <time className="text-sm text-gray-500" dateTime={item.timestamp}>
-                  {formatDistanceToNow(new Date(item.timestamp), { addSuffix: true })}
-                </time>
-              </div>
-              
-              {/* Analysis details */}
-              <div className="space-y-4">
-                {/* Status and timestamp */}
-                <div className="flex items-center justify-between text-sm">
-                  <span className={`px-3 py-1 rounded-full ${
-                    item.analysis.status === 'completed' ? 'bg-gradient-to-r from-green-400 to-green-600 text-white' :
-                    item.analysis.status === 'failed' ? 'bg-gradient-to-r from-red-400 to-red-600 text-white' :
-                    'bg-gradient-to-r from-blue-400 to-blue-600 text-white'
-                  }`}>
-                    {item.analysis.status.charAt(0).toUpperCase() + item.analysis.status.slice(1)}
-                  </span>
-                  <span className="text-gray-500">
-                    {format(new Date(item.timestamp), 'MMM d, yyyy HH:mm')}
-                  </span>
-                </div>
+  // Sort history to show latest first
+  const sortedHistory = [...history].sort((a, b) => 
+    new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  );
 
-                {/* Recommendations summary */}
-                {item.analysis.recommendations && (
-                  <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-                    <h4 className="text-sm font-medium text-gray-700">Recommendations</h4>
-                    <p className="text-gray-600 text-sm leading-relaxed">
-                      {item.analysis.recommendations.reasoning}
-                    </p>
-                    {item.analysis.recommendations.specialists?.length > 0 && (
+  return (
+    <div className="relative max-h-[calc(100vh-12rem)] flex flex-col">
+      {/* Container with overflow handling */}
+      <div className="relative flex-1 overflow-y-auto overflow-x-hidden px-4 -mx-4">
+        {/* Vertical line - lowest z-index */}
+        <div className="absolute left-8 top-0 bottom-0 w-px bg-gray-200 z-20" />
+        
+        {/* Timeline items */}
+        <div className="space-y-6 relative z-10 py-4">
+          {sortedHistory.map((item, index) => (
+            <div key={item.analysisId} className="relative flex items-start group">
+              {/* Status dot - higher z-index than the line but lower than content */}
+              <div className="absolute left-8 -translate-x-1/2 w-4 h-4 rounded-full bg-white border-2 border-gray-300 group-hover:bg-gradient-to-r group-hover:from-blue-400 group-hover:to-blue-600 group-hover:border-transparent transition-all duration-300 ease-in-out z-20 shadow-sm group-hover:shadow-md" />
+              
+              {/* Content card - highest z-index */}
+              <div className="ml-16 flex-1 bg-white rounded-2xl border border-gray-100 hover:border-blue-200 transition-all duration-300 ease-in-out p-6 relative z-30 hover:z-40 shadow-sm hover:shadow-md transform hover:-translate-y-0.5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <StatusIcon status={item.analysis.status} />
+                    <h3 className="text-lg font-medium text-gray-900">
+                      Analysis {sortedHistory.length - index}
+                    </h3>
+                  </div>
+                  <time className="text-sm text-gray-500" dateTime={item.timestamp}>
+                    {formatDistanceToNow(new Date(item.timestamp), { addSuffix: true })}
+                  </time>
+                </div>
+                
+                {/* Analysis details */}
+                <div className="space-y-4">
+                  {/* Status and timestamp */}
+                  <div className="flex items-center justify-between text-sm">
+                    <span className={`px-3 py-1 rounded-full transition-all duration-300 ease-in-out ${
+                      item.analysis.status === 'completed' ? 'bg-gradient-to-r from-green-400 to-green-600 text-white shadow-sm hover:shadow-md hover:from-green-500 hover:to-green-700' :
+                      item.analysis.status === 'failed' ? 'bg-gradient-to-r from-red-400 to-red-600 text-white shadow-sm hover:shadow-md hover:from-red-500 hover:to-red-700' :
+                      'bg-gradient-to-r from-blue-400 to-blue-600 text-white shadow-sm hover:shadow-md hover:from-blue-500 hover:to-blue-700'
+                    }`}>
+                      {item.analysis.status.charAt(0).toUpperCase() + item.analysis.status.slice(1)}
+                    </span>
+                    <span className="text-gray-500">
+                      {format(new Date(item.timestamp), 'MMM d, yyyy HH:mm')}
+                    </span>
+                  </div>
+
+                  {/* Recommendations summary */}
+                  {item.analysis.recommendations && (
+                    <div className="bg-gray-50 rounded-xl p-4 space-y-3 transition-all duration-300 ease-in-out hover:bg-gray-100">
+                      <h4 className="text-sm font-medium text-gray-700">Recommendations</h4>
+                      <p className="text-gray-600 text-sm leading-relaxed">
+                        {item.analysis.recommendations.reasoning}
+                      </p>
+                      {item.analysis.recommendations.specialists?.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {item.analysis.recommendations.specialists.map((specialist, i) => (
+                            <span key={i} className="inline-flex items-center px-3 py-1 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 text-white text-sm hover:from-blue-500 hover:to-blue-700 transition-all duration-300 ease-in-out shadow-sm hover:shadow-md transform hover:-translate-y-0.5">
+                              {specialist.specialty}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Risk factors if present */}
+                  {item.analysis.recommendations?.riskFactors?.length > 0 && (
+                    <div className="border-t border-gray-100 pt-4">
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">Risk Factors</h4>
                       <div className="flex flex-wrap gap-2">
-                        {item.analysis.recommendations.specialists.map((specialist, i) => (
-                          <span key={i} className="inline-flex items-center px-3 py-1 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 text-white text-sm hover:from-blue-500 hover:to-blue-700 transition-all duration-200">
-                            {specialist.specialty}
+                        {item.analysis.recommendations.riskFactors.map((risk, i) => (
+                          <span key={i} className="inline-flex items-center px-3 py-1 rounded-full bg-gradient-to-r from-yellow-400 to-yellow-600 text-white text-sm hover:from-yellow-500 hover:to-yellow-700 transition-all duration-300 ease-in-out shadow-sm hover:shadow-md transform hover:-translate-y-0.5">
+                            {risk}
                           </span>
                         ))}
                       </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Risk factors if present */}
-                {item.analysis.recommendations?.riskFactors?.length > 0 && (
-                  <div className="border-t border-gray-100 pt-4">
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">Risk Factors</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {item.analysis.recommendations.riskFactors.map((risk, i) => (
-                        <span key={i} className="inline-flex items-center px-3 py-1 rounded-full bg-gradient-to-r from-yellow-400 to-yellow-600 text-white text-sm">
-                          {risk}
-                        </span>
-                      ))}
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );
