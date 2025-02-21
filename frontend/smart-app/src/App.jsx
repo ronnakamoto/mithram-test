@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Route, Switch, useLocation } from 'wouter'
+import { Route, Switch, useLocation, Link } from 'wouter'
 import Home from './components/Home'
 import AnalysisDetails from './components/AnalysisDetails'
 import Launch from './components/Launch'
 import Callback from './components/Callback'
 import Header from './components/Header'
+import TermsOfService from './components/TermsOfService'
 
 function App() {
   const [, setLocation] = useLocation();
@@ -50,13 +51,19 @@ function App() {
             />
           )}
         </Route>
+        <Route path="/terms" component={TermsOfService} />
       </Switch>
 
       {/* Footer */}
       <footer className="w-full bg-white border-t border-gray-100">
         <div className="container mx-auto px-6 py-12">
           <div className="text-center">
-            <p className="text-sm text-gray-600"> 2025 Mithram. All rights reserved.</p>
+            <p className="text-sm text-gray-600">
+              2025 Mithram. All rights reserved. 
+              <Link href="/terms" className="ml-2 text-blue-500 hover:text-blue-600">
+                Terms of Service
+              </Link>
+            </p>
           </div>
         </div>
       </footer>
