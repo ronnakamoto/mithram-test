@@ -41,16 +41,6 @@ function Home() {
                 Features
               </button>
             </nav>
-
-            {/* GitHub Link */}
-            <a 
-              href="https://github.com" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-gray-600 hover:bg-gradient-to-r hover:from-blue-400 hover:to-blue-600 hover:bg-clip-text hover:text-transparent transition-all cursor-pointer"
-            >
-              GitHub
-            </a>
           </div>
         </div>
       </div>
