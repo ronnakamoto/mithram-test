@@ -39,31 +39,88 @@ function Home() {
       </div>
 
       {/* Features Section */}
-      <div id="features" className="w-full bg-gray-50">
+      <div id="features" className="w-full bg-gradient-to-br from-gray-50 to-white">
         <div className="container mx-auto px-6 py-32">
+          {/* Section Header */}
+          <div className="text-center mb-20">
+            <h2 className="text-4xl font-light text-gray-900 mb-4">
+              Powered by GENESIS
+              <br />
+              <span className="text-blue-600">The Future of Medical Analysis</span>
+            </h2>
+            <p className="text-gray-600 max-w-2xl mx-auto text-lg">
+              Our innovative GENESIS protocol combines advanced AI techniques with blockchain technology for comprehensive medical analysis
+            </p>
+          </div>
+
+          {/* Features Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             {[
               {
-                icon: "🎯",
-                title: "Instant FHIR Integration",
-                description: "Connect to any FHIR server with a single click. Experience seamless healthcare data exchange that just works."
+                image: "https://picsum.photos/seed/genesis/400/300.webp",
+                title: "GENESIS Protocol",
+                description: "Multi-perspective AI analysis with dynamic prompt generation and parallel processing for comprehensive medical insights.",
+                highlight: "Advanced Analysis"
               },
               {
-                icon: "🧠",
-                title: "Smart Clinical AI",
-                description: "Leverage advanced machine learning to spot patterns and insights that could be easily missed by human analysis alone."
+                image: "https://picsum.photos/seed/chat/400/300.webp",
+                title: "Intelligent Chat",
+                description: "Context-aware medical responses with fast-track processing for basic queries and specialist consultation for complex cases.",
+                highlight: "Smart Responses"
               },
               {
-                icon: "⚡",
-                title: "Lightning-Fast Results",
-                description: "Get comprehensive analysis in seconds. Designed for speed and efficiency when you need answers fast."
+                image: "https://picsum.photos/seed/cds/400/300.webp",
+                title: "CDS Hooks Integration",
+                description: "Seamless integration with SMART on FHIR authentication and secure token-based session management for protected data handling.",
+                highlight: "FHIR Ready"
+              },
+              {
+                image: "https://picsum.photos/seed/nft/400/300.webp",
+                title: "NFT Integration",
+                description: "Secure storage of medical analyses on decentralized IPFS with private buckets, maintaining an immutable chain of medical records.",
+                highlight: "Blockchain Secured"
+              },
+              {
+                image: "https://picsum.photos/seed/analysis/400/300.webp",
+                title: "Multi-Perspective Analysis",
+                description: "Parallel processing of unique analytical perspectives using zero-temperature LLM for deterministic medical insights.",
+                highlight: "4-Way Analysis"
+              },
+              {
+                image: "https://picsum.photos/seed/synthesis/400/300.webp",
+                title: "Analysis Synthesis",
+                description: "Advanced synthesis of multiple perspectives into structured recommendations and risk assessments for comprehensive care.",
+                highlight: "Smart Synthesis"
               }
             ].map((feature, index) => (
-              <div key={index} className="group">
-                <div className="bg-white rounded-2xl p-8 h-full hover:scale-[1.02] transition-transform duration-300 ease-out">
-                  <div className="text-4xl mb-6">{feature.icon}</div>
-                  <h3 className="text-lg font-medium mb-4 text-gray-900">{feature.title}</h3>
-                  <p className="text-gray-600 leading-relaxed">{feature.description}</p>
+              <div key={index} className="group relative">
+                <div className="bg-white rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border border-gray-100">
+                  {/* Feature Image */}
+                  <div className="relative h-48 overflow-hidden">
+                    <img 
+                      src={feature.image} 
+                      alt={feature.title}
+                      className="w-full h-full object-cover transform transition-transform group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                    <div className="absolute bottom-4 left-4">
+                      <div className="inline-block px-3 py-1 rounded-full bg-white/90 text-blue-600 text-sm font-medium">
+                        {feature.highlight}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="p-6">
+                    {/* Feature Title */}
+                    <h3 className="text-xl font-medium mb-3 text-gray-900">
+                      {feature.title}
+                    </h3>
+                    
+                    {/* Feature Description */}
+                    <p className="text-gray-600 leading-relaxed">
+                      {feature.description}
+                    </p>
+                  </div>
                 </div>
               </div>
             ))}
