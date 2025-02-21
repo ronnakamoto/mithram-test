@@ -2,10 +2,61 @@ import { Link } from 'wouter'
 import VideoPlayer from './VideoPlayer'
 
 function Home() {
+  const scrollToSection = (sectionId) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <>
+      {/* Navigation Header */}
+      <div className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-sm z-50 border-b border-gray-100">
+        <div className="container mx-auto px-6">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo */}
+            <div className="text-xl font-medium text-blue-600">
+              Mithram
+            </div>
+            
+            {/* Navigation Links */}
+            <nav className="hidden md:flex space-x-8">
+              <button 
+                onClick={() => scrollToSection('hero')}
+                className="text-gray-600 hover:text-blue-600 transition-colors cursor-pointer"
+              >
+                Home
+              </button>
+              <button 
+                onClick={() => scrollToSection('video')}
+                className="text-gray-600 hover:text-blue-600 transition-colors cursor-pointer"
+              >
+                Demo
+              </button>
+              <button 
+                onClick={() => scrollToSection('features')}
+                className="text-gray-600 hover:text-blue-600 transition-colors cursor-pointer"
+              >
+                Features
+              </button>
+            </nav>
+
+            {/* GitHub Link */}
+            <a 
+              href="https://github.com" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-gray-600 hover:text-blue-600 transition-colors cursor-pointer"
+            >
+              GitHub
+            </a>
+          </div>
+        </div>
+      </div>
+
       {/* Hero Section */}
-      <div className="w-full pt-32 hero-gradient">
+      <div id="hero" className="w-full pt-32 hero-gradient">
         <div className="container mx-auto px-6 py-24">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-6xl font-light tracking-tight text-gray-900 mb-8">
@@ -17,18 +68,19 @@ function Home() {
               Imagine turning complex medical data into crystal-clear action plans in minutes. Our innovative platform combines cutting-edge AI with seamless FHIR integration to revolutionize healthcare decision support.
             </p>
             <div className="flex justify-center space-x-6">
-              <Link href="/analysis/demo-123">
-                <a className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-4 rounded-full text-sm font-medium hover:from-blue-700 hover:to-blue-800 transition-all transform hover:scale-105 shadow-lg">
-                  Learn More
-                </a>
-              </Link>
+              <button
+                onClick={() => scrollToSection('video')}
+                className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-4 rounded-full text-sm font-medium hover:from-blue-700 hover:to-blue-800 transition-all transform hover:scale-105 shadow-lg cursor-pointer"
+              >
+                Learn More
+              </button>
             </div>
           </div>
         </div>
       </div>
 
       {/* Video Section */}
-      <div className="w-full bg-gradient-to-b from-white via-blue-50 to-white py-32">
+      <div id="video" className="w-full bg-gradient-to-b from-white via-blue-50 to-white py-32">
         <div className="container mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-light text-gray-900 mb-4">See How It Works</h2>
@@ -128,7 +180,7 @@ function Home() {
         </div>
       </div>
     </>
-  )
+  );
 }
 
 export default Home
