@@ -6,6 +6,7 @@ import Launch from './components/Launch'
 import Callback from './components/Callback'
 import Header from './components/Header'
 import TermsOfService from './components/TermsOfService'
+import PrivacyPolicy from './components/PrivacyPolicy'
 
 function App() {
   const [, setLocation] = useLocation();
@@ -52,6 +53,7 @@ function App() {
           )}
         </Route>
         <Route path="/terms" component={TermsOfService} />
+        <Route path="/privacy" component={PrivacyPolicy} />
       </Switch>
 
       {/* Footer */}
@@ -62,6 +64,10 @@ function App() {
               2025 Mithram. All rights reserved. 
               <Link href="/terms" className="ml-2 text-blue-500 hover:text-blue-600">
                 Terms of Service
+              </Link>
+              <span className="mx-2 text-gray-400">|</span>
+              <Link href="/privacy" className="text-blue-500 hover:text-blue-600">
+                Privacy Policy
               </Link>
             </p>
           </div>
