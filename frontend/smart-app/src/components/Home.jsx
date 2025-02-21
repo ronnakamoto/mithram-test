@@ -16,7 +16,7 @@ function Home() {
         <div className="container mx-auto px-6">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <div className="text-xl font-medium text-blue-600">
+            <div className="text-xl font-medium bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">
               Mithram
             </div>
             
@@ -24,19 +24,19 @@ function Home() {
             <nav className="hidden md:flex space-x-8">
               <button 
                 onClick={() => scrollToSection('hero')}
-                className="text-gray-600 hover:text-blue-600 transition-colors cursor-pointer"
+                className="text-gray-600 hover:bg-gradient-to-r hover:from-blue-400 hover:to-blue-600 hover:bg-clip-text hover:text-transparent transition-all cursor-pointer"
               >
                 Home
               </button>
               <button 
                 onClick={() => scrollToSection('video')}
-                className="text-gray-600 hover:text-blue-600 transition-colors cursor-pointer"
+                className="text-gray-600 hover:bg-gradient-to-r hover:from-blue-400 hover:to-blue-600 hover:bg-clip-text hover:text-transparent transition-all cursor-pointer"
               >
                 Demo
               </button>
               <button 
                 onClick={() => scrollToSection('features')}
-                className="text-gray-600 hover:text-blue-600 transition-colors cursor-pointer"
+                className="text-gray-600 hover:bg-gradient-to-r hover:from-blue-400 hover:to-blue-600 hover:bg-clip-text hover:text-transparent transition-all cursor-pointer"
               >
                 Features
               </button>
@@ -47,7 +47,7 @@ function Home() {
               href="https://github.com" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-gray-600 hover:text-blue-600 transition-colors cursor-pointer"
+              className="text-gray-600 hover:bg-gradient-to-r hover:from-blue-400 hover:to-blue-600 hover:bg-clip-text hover:text-transparent transition-all cursor-pointer"
             >
               GitHub
             </a>
@@ -56,13 +56,13 @@ function Home() {
       </div>
 
       {/* Hero Section */}
-      <div id="hero" className="w-full pt-32 hero-gradient">
-        <div className="container mx-auto px-6 py-24">
+      <div id="hero" className="w-full min-h-screen flex items-center pt-16 hero-gradient">
+        <div className="container mx-auto px-6 py-20">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-6xl font-light tracking-tight text-gray-900 mb-8">
               Transform Patient Care
               <br />
-              <span className="font-normal">with AI-Powered Insights</span>
+              <span className="font-normal bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">with AI-Powered Insights</span>
             </h1>
             <p className="text-xl text-gray-600 mb-12 leading-relaxed">
               Imagine turning complex medical data into crystal-clear action plans in minutes. Our innovative platform combines cutting-edge AI with seamless FHIR integration to revolutionize healthcare decision support.
@@ -70,7 +70,7 @@ function Home() {
             <div className="flex justify-center space-x-6">
               <button
                 onClick={() => scrollToSection('video')}
-                className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-4 rounded-full text-sm font-medium hover:from-blue-700 hover:to-blue-800 transition-all transform hover:scale-105 shadow-lg cursor-pointer"
+                className="bg-gradient-to-r from-blue-400 to-blue-600 text-white px-8 py-4 rounded-full text-sm font-medium hover:from-blue-500 hover:to-blue-700 transition-all transform hover:scale-105 shadow-lg hover:shadow-blue-500/25 cursor-pointer"
               >
                 Learn More
               </button>
@@ -80,11 +80,11 @@ function Home() {
       </div>
 
       {/* Video Section */}
-      <div id="video" className="w-full bg-gradient-to-b from-white via-blue-50 to-white py-32">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-16">
+      <div id="video" className="w-full bg-gradient-to-b from-white via-blue-50 to-white">
+        <div className="container mx-auto px-6 py-32">
+          <div className="text-center mb-20">
             <h2 className="text-3xl font-light text-gray-900 mb-4">See How It Works</h2>
-            <p className="text-blue-600 max-w-2xl mx-auto">Watch our quick overview video to understand how our AI-powered platform transforms healthcare decision making.</p>
+            <p className="bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent max-w-2xl mx-auto">Watch our quick overview video to understand how our AI-powered platform transforms healthcare decision making.</p>
           </div>
           <VideoPlayer videoUrl="https://youtu.be/Kdsa8eSj01g?si=y6C48ohIB-rl9k5C" />
         </div>
@@ -94,11 +94,11 @@ function Home() {
       <div id="features" className="w-full bg-gradient-to-br from-gray-50 to-white">
         <div className="container mx-auto px-6 py-32">
           {/* Section Header */}
-          <div className="text-center mb-20">
-            <h2 className="text-4xl font-light text-gray-900 mb-4">
+          <div className="text-center mb-24">
+            <h2 className="text-4xl font-light text-gray-900 mb-6">
               Powered by GENESIS
               <br />
-              <span className="text-blue-600">The Future of Medical Analysis</span>
+              <span className="bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">The Future of Medical Analysis</span>
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto text-lg">
               Our innovative GENESIS protocol combines advanced AI techniques with blockchain technology for comprehensive medical analysis
@@ -106,7 +106,7 @@ function Home() {
           </div>
 
           {/* Features Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-12">
             {[
               {
                 image: "https://picsum.photos/seed/genesis/400/300.webp",
@@ -156,7 +156,7 @@ function Home() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                     <div className="absolute bottom-4 left-4">
-                      <div className="inline-block px-3 py-1 rounded-full bg-white/90 text-blue-600 text-sm font-medium">
+                      <div className="inline-block px-3 py-1 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 text-white text-sm font-medium shadow-sm">
                         {feature.highlight}
                       </div>
                     </div>
