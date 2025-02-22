@@ -95,6 +95,166 @@ function Home() {
             </p>
           </div>
 
+          {/* What is GENESIS Protocol Section */}
+          <div className="mb-16">
+            <div className="max-w-4xl mx-auto">
+              <div className="text-center">
+                <h3 className="text-2xl font-medium text-gray-900 mb-6">What is GENESIS Protocol?</h3>
+                <p className="text-gray-600 mb-8">
+                  GENESIS (Generative Enrichment via NFT and Synthesis) is our groundbreaking approach to medical analysis that combines multi-perspective AI analysis with secure blockchain technology.
+                </p>
+              </div>
+
+              {/* How It Works Section */}
+              <div className="mb-12">
+                <h4 className="text-xl font-medium text-gray-900 mb-6 text-center">How It Works</h4>
+                <div className="space-y-8">
+                  {/* Step 1 */}
+                  <div className="bg-white p-6 rounded-xl shadow-md">
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 flex items-center justify-center text-white font-medium">
+                          1
+                        </div>
+                      </div>
+                      <div className="ml-4">
+                        <h5 className="text-lg font-medium text-gray-900 mb-2">Patient History Analysis</h5>
+                        <p className="text-gray-600 mb-3">
+                          The protocol begins by analyzing the patient's medical history. It retrieves and sorts the two most recent analyses by timestamp, creating a temporal context for understanding the patient's health progression.
+                        </p>
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <p className="text-sm text-gray-500">
+                            <span className="font-medium">Technical Detail:</span> Uses structured data format including analysis ID, timestamp, and metadata for comprehensive historical context.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Step 2 */}
+                  <div className="bg-white p-6 rounded-xl shadow-md">
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 flex items-center justify-center text-white font-medium">
+                          2
+                        </div>
+                      </div>
+                      <div className="ml-4">
+                        <h5 className="text-lg font-medium text-gray-900 mb-2">Dynamic Prompt Generation</h5>
+                        <p className="text-gray-600 mb-3">
+                          GENESIS dynamically generates four unique analytical perspectives using gpt-4o-mini. Each perspective is designed to focus on different aspects of patient care, ensuring comprehensive analysis.
+                        </p>
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <p className="text-sm text-gray-500">
+                            <span className="font-medium">Example Perspectives:</span> Clinical assessment, preventive care strategies, treatment optimization, and long-term health planning.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Step 3 */}
+                  <div className="bg-white p-6 rounded-xl shadow-md">
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 flex items-center justify-center text-white font-medium">
+                          3
+                        </div>
+                      </div>
+                      <div className="ml-4">
+                        <h5 className="text-lg font-medium text-gray-900 mb-2">Parallel Multi-Perspective Analysis</h5>
+                        <p className="text-gray-600 mb-3">
+                          All four perspectives are analyzed simultaneously using parallel processing. Each analysis is performed with zero temperature setting for maximum consistency and deterministic outputs.
+                        </p>
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <p className="text-sm text-gray-500">
+                            <span className="font-medium">Key Feature:</span> Concurrent processing reduces analysis time while maintaining high accuracy through specialized perspective-based prompts.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Step 4 */}
+                  <div className="bg-white p-6 rounded-xl shadow-md">
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 flex items-center justify-center text-white font-medium">
+                          4
+                        </div>
+                      </div>
+                      <div className="ml-4">
+                        <h5 className="text-lg font-medium text-gray-900 mb-2">Comprehensive Synthesis</h5>
+                        <p className="text-gray-600 mb-3">
+                          The protocol synthesizes all analyses into a structured format, producing actionable insights including patient overview, care recommendations, and risk factors.
+                        </p>
+                        <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                          <p className="text-sm text-gray-500">
+                            <span className="font-medium">Output Structure:</span>
+                          </p>
+                          <ul className="text-sm text-gray-500 list-disc pl-4">
+                            <li>Patient overview (age, gender, chronic conditions)</li>
+                            <li>Care approach recommendations</li>
+                            <li>Patient engagement strategies</li>
+                            <li>Interdisciplinary coordination plans</li>
+                            <li>Preventive health measures</li>
+                            <li>Specialist referral suggestions</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Step 5 */}
+                  <div className="bg-white p-6 rounded-xl shadow-md">
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 flex items-center justify-center text-white font-medium">
+                          5
+                        </div>
+                      </div>
+                      <div className="ml-4">
+                        <h5 className="text-lg font-medium text-gray-900 mb-2">Secure Storage & Verification</h5>
+                        <p className="text-gray-600 mb-3">
+                          Each analysis is securely stored using private IPFS buckets, with data spread across multiple nodes. An immutable blockchain-like chain of analyses maintains complete accountability.
+                        </p>
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <p className="text-sm text-gray-500">
+                            <span className="font-medium">Security Features:</span> End-to-end encryption, distributed storage, and blockchain-based verification ensure data integrity and HIPAA compliance.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Key Features Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="bg-white p-6 rounded-xl shadow-md">
+                  <h4 className="text-lg font-medium text-gray-900 mb-4">Technical Specifications</h4>
+                  <ul className="space-y-3 text-gray-600">
+                    <li>• AI Model: gpt-4o-mini with zero temperature</li>
+                    <li>• Processing: Parallel analysis execution</li>
+                    <li>• Storage: Private IPFS buckets</li>
+                    <li>• Security: End-to-end encryption</li>
+                    <li>• Integration: FHIR-compatible endpoints</li>
+                  </ul>
+                </div>
+                <div className="bg-white p-6 rounded-xl shadow-md">
+                  <h4 className="text-lg font-medium text-gray-900 mb-4">Benefits</h4>
+                  <ul className="space-y-3 text-gray-600">
+                    <li>• Comprehensive multi-perspective analysis</li>
+                    <li>• Rapid, consistent results</li>
+                    <li>• Structured, actionable insights</li>
+                    <li>• Complete audit trail</li>
+                    <li>• HIPAA-compliant security</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Features Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-12">
             {[
