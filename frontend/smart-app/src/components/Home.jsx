@@ -259,37 +259,37 @@ function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-12">
             {[
               {
-                image: "https://picsum.photos/seed/genesis/400/300.webp",
+                image: "feature-1.jpeg",
                 title: "GENESIS Protocol",
                 description: "Multi-perspective AI analysis with dynamic prompt generation and parallel processing for comprehensive medical insights.",
                 highlight: "Advanced Analysis"
               },
               {
-                image: "https://picsum.photos/seed/chat/400/300.webp",
+                image: "feature-2.jpeg",
                 title: "Intelligent Chat",
                 description: "Context-aware medical responses with fast-track processing for basic queries and specialist consultation for complex cases.",
                 highlight: "Smart Responses"
               },
               {
-                image: "https://picsum.photos/seed/cds/400/300.webp",
+                image: "feature-3.jpeg",
                 title: "CDS Hooks Integration",
                 description: "Seamless integration with SMART on FHIR authentication and secure token-based session management for protected data handling.",
                 highlight: "FHIR Ready"
               },
               {
-                image: "https://picsum.photos/seed/nft/400/300.webp",
+                image: "feature-4.jpeg",
                 title: "NFT Integration",
                 description: "Secure storage of medical analyses on decentralized IPFS with private buckets, maintaining an immutable chain of medical records.",
                 highlight: "Blockchain Secured"
               },
               {
-                image: "https://picsum.photos/seed/analysis/400/300.webp",
+                image: "feature-5.jpeg",
                 title: "Multi-Perspective Analysis",
                 description: "Parallel processing of unique analytical perspectives using zero-temperature LLM for deterministic medical insights.",
                 highlight: "4-Way Analysis"
               },
               {
-                image: "https://picsum.photos/seed/synthesis/400/300.webp",
+                image: "feature-6.jpeg",
                 title: "Analysis Synthesis",
                 description: "Advanced synthesis of multiple perspectives into structured recommendations and risk assessments for comprehensive care.",
                 highlight: "Smart Synthesis"
