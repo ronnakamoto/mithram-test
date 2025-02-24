@@ -1,7 +1,12 @@
 import { Link } from 'wouter'
+import { useState } from 'react'
+import { DocumentTextIcon } from '@heroicons/react/24/outline'
 import VideoPlayer from './VideoPlayer'
+import PDFViewer from './PDFViewer'
 
 function Home() {
+  const [isPDFOpen, setIsPDFOpen] = useState(false);
+  
   const scrollToSection = (sectionId) => {
     const element = document.getElementById(sectionId);
     if (element) {
@@ -204,29 +209,25 @@ function Home() {
                       </div>
                     </div>
                   </div>
-
-                  {/* Step 5 */}
-                  <div className="bg-white p-6 rounded-xl shadow-md">
-                    <div className="flex items-start">
-                      <div className="flex-shrink-0">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 flex items-center justify-center text-white font-medium">
-                          5
-                        </div>
-                      </div>
-                      <div className="ml-4">
-                        <h5 className="text-lg font-medium text-gray-900 mb-2">Secure Storage & Verification</h5>
-                        <p className="text-gray-600 mb-3">
-                          Each analysis is securely stored using private IPFS buckets, with data spread across multiple nodes. An immutable blockchain-like chain of analyses maintains complete accountability.
-                        </p>
-                        <div className="bg-gray-50 p-4 rounded-lg">
-                          <p className="text-sm text-gray-500">
-                            <span className="font-medium">Security Features:</span> End-to-end encryption, distributed storage, and blockchain-based verification ensure data integrity and HIPAA compliance.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
                 </div>
+              </div>
+
+              {/* Research Paper Button */}
+              <div className="text-center mt-12 mb-16">
+                <button
+                  onClick={() => setIsPDFOpen(true)}
+                  className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-400 to-blue-600 text-white rounded-full text-lg font-medium hover:from-blue-500 hover:to-blue-700 transition-all transform hover:scale-105 shadow-lg hover:shadow-blue-500/25 cursor-pointer"
+                >
+                  <DocumentTextIcon className="h-6 w-6 mr-2" />
+                  Read The GENESIS Research Paper
+                </button>
+
+                {/* PDF Viewer */}
+                <PDFViewer
+                  url="https://oral-silver-elk.myfilebase.com/ipfs/QmaAMjmydL8uCFvdZrE9JcqujvxzTF3QGiCd3xFAUDDEt9"
+                  isOpen={isPDFOpen}
+                  onClose={() => setIsPDFOpen(false)}
+                />
               </div>
 
               {/* Key Features Grid */}
