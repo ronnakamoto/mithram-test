@@ -12,6 +12,11 @@ const config: HardhatUserConfig = {
       },
     },
   },
+  etherscan: {
+    apiKey: {
+      baseSepolia: process.env.BASE_SEPOLIA_ETHERSCAN_API_KEY || "",
+    }
+  },
   networks: {
     hardhat: {
       chainId: 1337,
